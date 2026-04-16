@@ -4,12 +4,19 @@ A web application for prospective students and families to apply to a school.
 
 ## Overview
 
-NewSchool Apply is a React-based frontend that guides applicants through the school application process. Drupal serves as the backend, handling all authentication, authorization, business rules, and data storage.
+NewSchool Apply is a monorepo containing the React frontend and the Drupal backend. Drupal handles all authentication, authorization, business rules, and data storage. The React app renders UI and calls Drupal's API.
+
+## Repository Structure
+
+```
+/frontend/    ← Plain React application
+/backend/     ← Drupal container (Dockerfile, init script, config)
+```
 
 ## Architecture
 
-- **Frontend**: Plain React — renders UI, collects input, calls API endpoints
-- **Backend**: Drupal — single source of truth for all application logic, permissions, and workflow state
+- **Frontend** (`/frontend/`): Plain React — renders UI, collects input, calls Drupal API endpoints
+- **Backend** (`/backend/`): Drupal — single source of truth for all application logic, permissions, and workflow state. Runs in a Docker container with SQLite by default for lightweight local development and testing.
 
 ## Features
 
@@ -21,20 +28,40 @@ NewSchool Apply is a React-based frontend that guides applicants through the sch
 
 ## Getting Started
 
-Install dependencies:
+### Backend (Drupal)
+
+Build and start the Drupal container:
 
 ```bash
-npm ci
+cd backend
+docker build -t newschool-drupal .
+docker run -p 8080:80 newschool-drupal
 ```
 
-Start the development server:
+Drupal will be available at `http://localhost:8080`. The initialization script runs automatically on first start and seeds Drupal with default configuration using SQLite.
+
+### Frontend (React)
+
+Install dependencies and start the development server:
 
 ```bash
+cd frontend
+npm ci
 npm start
+```
+
+The React app expects Drupal at the URL configured in `frontend/.env` via `REACT_APP_DRUPAL_BASE_URL`.
+
+### Running Frontend Tests
+
+```bash
+cd frontend
+npm test -- --watchAll=false
 ```
 
 ## Notes
 
 - All authentication is handled by Drupal. The frontend never manages tokens or sessions directly.
 - Client-side validation is for user experience only. All authoritative validation is server-side.
+- SQLite is the default database for local development. Production deployments should configure a proper database (e.g., MySQL/PostgreSQL) via environment variables.
 - See [AGENTS.md](AGENTS.md) for AI coding agent rules and architectural guardrails.
