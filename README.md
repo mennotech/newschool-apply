@@ -9,8 +9,9 @@ NewSchool Apply is a monorepo containing the React frontend and the Drupal backe
 ## Repository Structure
 
 ```
-/frontend/    ← Plain React application
-/backend/     ← Drupal container (Dockerfile, init script, config)
+/frontend/          ← Plain React application (Dockerfile.dev + Dockerfile)
+/backend/           ← Drupal container (Dockerfile, init script, config)
+docker-compose.yml  ← Wires frontend (port 3000) + backend (port 8080)
 ```
 
 ## Architecture
@@ -28,34 +29,58 @@ NewSchool Apply is a monorepo containing the React frontend and the Drupal backe
 
 ## Getting Started
 
-### Backend (Drupal)
+Everything runs in Docker. You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
-Build and start the Drupal container:
+### 1. Configure environment
 
-```bash
-cd backend
-docker build -t newschool-drupal .
-docker run -p 8080:80 newschool-drupal
-```
-
-Drupal will be available at `http://localhost:8080`. The initialization script runs automatically on first start and seeds Drupal with default configuration using SQLite.
-
-### Frontend (React)
-
-Install dependencies and start the development server:
+Copy the example env file and set credentials:
 
 ```bash
-cd frontend
-npm ci
-npm start
+cp frontend/.env.example frontend/.env
 ```
 
-The React app expects Drupal at the URL configured in `frontend/.env` via `REACT_APP_DRUPAL_BASE_URL`.
+Create a `.env` file at the repo root for Drupal admin credentials:
+
+```bash
+# .env (repo root — gitignored)
+DRUPAL_ADMIN_USER=admin
+DRUPAL_ADMIN_PASS=changeme
+```
+
+### 2. Start all services
+
+```bash
+docker compose up --build
+```
+
+- **Frontend (React):** http://localhost:3000 — hot-reload enabled
+- **Backend (Drupal):** http://localhost:8080
+
+The Drupal init script runs automatically on first start, installs Drupal with SQLite, imports config, and creates the admin account.
+
+### 3. Stop services
+
+```bash
+docker compose down
+```
+
+To also remove the database volume (full reset):
+
+```bash
+docker compose down -v
+```
 
 ### Running Frontend Tests
 
 ```bash
+docker compose run --rm frontend npm test -- --watchAll=false
+```
+
+Or, if you prefer to run tests locally without Docker (requires Node 20+):
+
+```bash
 cd frontend
+npm ci
 npm test -- --watchAll=false
 ```
 
@@ -64,4 +89,5 @@ npm test -- --watchAll=false
 - All authentication is handled by Drupal. The frontend never manages tokens or sessions directly.
 - Client-side validation is for user experience only. All authoritative validation is server-side.
 - SQLite is the default database for local development. Production deployments should configure a proper database (e.g., MySQL/PostgreSQL) via environment variables.
+- Hot-reload inside Docker on Windows uses polling (`CHOKIDAR_USEPOLLING=true`); it works but is slightly slower than native `npm start`.
 - See [AGENTS.md](AGENTS.md) for AI coding agent rules and architectural guardrails.
