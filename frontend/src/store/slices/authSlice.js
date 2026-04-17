@@ -1,12 +1,22 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { post } from '../../api/drupalClient';
+import { post, get } from '../../api/drupalClient';
 
 export const loginWithPassword = createAsyncThunk(
   'auth/loginWithPassword',
   async ({ name, pass }, { rejectWithValue }) => {
     try {
       const loginData = await post('/user/login?_format=json', { name, pass }, 'application/json');
-      return { user: loginData.current_user, logoutToken: loginData.logout_token };
+      const uid = loginData.current_user?.uid;
+      let fullUser = loginData.current_user;
+      if (uid) {
+        try {
+          const userEntity = await get(`/user/${uid}?_format=json`);
+          fullUser = { ...loginData.current_user, mail: userEntity.mail?.[0]?.value };
+        } catch (_) {
+          // If we can't fetch the full user, proceed without email
+        }
+      }
+      return { user: fullUser, logoutToken: loginData.logout_token };
     } catch (err) {
       return rejectWithValue(err.message || 'Login failed');
     }
