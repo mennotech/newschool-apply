@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.document
+id: node.document.field_file
+field_name: field_file
+entity_type: node
+bundle: document
+label: 'File'
+description: 'Uploaded document file'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  file_extensions: 'pdf doc docx jpg png'
+  file_directory: 'applications/[date:custom:Y]-[date:custom:m]'
+  max_filesize: '5 MB'
+  description_field: false
+field_type: file

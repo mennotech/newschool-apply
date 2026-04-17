@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+    - user
+name: student_profile
+type: student_profile
+description: 'Student profile for school applications'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

@@ -1,0 +1,13 @@
+{
+  "name": "newschool-apply-backend-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend API integration tests (no runtime dependencies — requires Node 18+)",
+  "scripts": {
+    "test": "node tests/api.test.js",
+    "test:staging": "BASE_URL=http://localhost:8080 node tests/api.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

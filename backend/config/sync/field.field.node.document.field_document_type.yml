@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.document
+id: node.document.field_document_type
+field_name: field_document_type
+entity_type: node
+bundle: document
+label: 'Document type'
+description: 'Type of document (e.g. transcript, id, immunization)'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

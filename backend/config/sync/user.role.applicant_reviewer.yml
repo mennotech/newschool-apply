@@ -1,0 +1,9 @@
+langcode: en
+status: true
+id: applicant_reviewer
+label: 'Applicant Reviewer'
+weight: 3
+is_admin: false
+permissions:
+  - 'access content'
+  - 'view any unpublished content'

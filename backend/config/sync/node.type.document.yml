@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - file
+    - text
+name: document
+type: document
+description: 'Document uploaded as part of an application'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

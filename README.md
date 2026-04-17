@@ -1,6 +1,139 @@
 # NewSchool Apply
 
-A web application for prospective students and families to apply to a school.
+Web application for prospective students and families to apply to NewSchool.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 (CRA), Redux Toolkit, React Router v6 |
+| Backend | Drupal 10, PHP 8.2, SQLite (local dev) |
+| API | Drupal JSON:API + session-based auth |
+| Tests | Jest, React Testing Library, MSW |
+
+---
+
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (with Compose v2)
+- Git
+
+---
+
+## Quick Start (Docker)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/mennotech/newschool-apply.git
+cd newschool-apply
+
+# 2. Set admin credentials
+export DRUPAL_ADMIN_USER=admin
+export DRUPAL_ADMIN_PASS=changeme
+
+# 3. Start both services
+docker compose up --build
+
+# 4. Access:
+#   Frontend: http://localhost:3000
+#   Backend (Drupal): http://localhost:8080
+```
+
+On first start `backend/init.sh` runs automatically: installs Drupal with SQLite, creates the admin account, enables required modules, and creates roles.
+
+The frontend hot-reloads on file changes due to `CHOKIDAR_USEPOLLING=true` (required for Docker on Windows/macOS).
+
+---
+
+## Running Tests
+
+```bash
+# Run the full frontend test suite (non-interactive)
+docker compose run --rm frontend npm test -- --watchAll=false
+```
+
+Or locally (Node 20+ required):
+
+```bash
+cd frontend
+npm ci
+npm test -- --watchAll=false
+```
+
+---
+
+## Environment Variables
+
+### Frontend
+
+Copy `.env.example` to `.env` for local development outside Docker:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `REACT_APP_DRUPAL_BASE_URL` | `http://localhost:8080` | Drupal base URL (no trailing slash) |
+
+When running via `docker compose`, this variable is injected automatically.
+
+### Backend
+
+| Variable | Default | Description |
+|---|---|---|
+| `DRUPAL_ADMIN_USER` | `admin` | Drupal admin username |
+| `DRUPAL_ADMIN_PASS` | `changeme` | Drupal admin password — **change in production** |
+
+---
+
+## Architecture
+
+See [AGENTS.md](AGENTS.md) for full architectural guardrails.
+
+**Key principle:** Drupal is the single source of truth. React is UI only.
+
+### Authentication Flow
+
+1. Email/password: `POST /user/login` → Drupal sets session cookie.
+2. Social login: redirect to `{DRUPAL_BASE_URL}/social-auth/google` or `/social-auth/microsoft`.
+3. Frontend fetches `/user/me` and stores user in Redux.
+4. All mutating requests include a fresh `X-CSRF-Token` from `/session/token`.
+
+### Application Flow
+
+1. **Student Info** — saved to `node--student_profile` via JSON:API.
+2. **Documents** — file uploaded to Drupal file API.
+3. **Review & Submit** — `PATCH node--application` sets `field_status = submitted`.
+
+---
+
+## Project Structure
+
+```
+newschool-apply/
+├── docker-compose.yml
+├── AGENTS.md
+├── backend/
+│   ├── Dockerfile
+│   ├── init.sh
+│   ├── services.yml
+│   └── config/sync/
+└── frontend/
+    ├── Dockerfile
+    ├── Dockerfile.dev
+    ├── nginx.conf
+    ├── .env.example
+    └── src/
+        ├── api/drupalClient.js
+        ├── components/
+        │   ├── ApplicationProgress.js
+        │   ├── ProtectedRoute.js
+        │   └── steps/
+        ├── mocks/
+        ├── pages/
+        └── store/
+```
 
 ## Overview
 
