@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ApplicationPage from './pages/ApplicationPage';
+import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import { fetchCurrentUser } from './store/slices/authSlice';
 
@@ -51,6 +52,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/application/:id"
+          element={
+            <ProtectedRoute>
+              <ApplicationDetailPage />
             </ProtectedRoute>
           }
         />

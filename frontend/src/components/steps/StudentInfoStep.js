@@ -60,15 +60,16 @@ function StudentInfoStep({ onComplete }) {
 
   return (
     <section aria-labelledby="student-info-heading">
-      <h2 id="student-info-heading">Student Information</h2>
+      <h2 id="student-info-heading" style={{ marginBottom: '1.5rem' }}>Student Information</h2>
 
       <form onSubmit={handleSubmit} noValidate>
-        <div>
-          <label htmlFor="firstName">First name</label>
+        <div className="form-group">
+          <label className="form-label" htmlFor="firstName">First name</label>
           <input
             id="firstName"
             name="firstName"
             type="text"
+            className="form-input"
             value={fields.firstName}
             onChange={handleChange}
             aria-describedby={errors.firstName ? 'firstName-error' : undefined}
@@ -76,18 +77,19 @@ function StudentInfoStep({ onComplete }) {
             autoComplete="given-name"
           />
           {errors.firstName && (
-            <span id="firstName-error" role="alert">
+            <span id="firstName-error" className="form-error" role="alert">
               {errors.firstName}
             </span>
           )}
         </div>
 
-        <div>
-          <label htmlFor="lastName">Last name</label>
+        <div className="form-group">
+          <label className="form-label" htmlFor="lastName">Last name</label>
           <input
             id="lastName"
             name="lastName"
             type="text"
+            className="form-input"
             value={fields.lastName}
             onChange={handleChange}
             aria-describedby={errors.lastName ? 'lastName-error' : undefined}
@@ -95,56 +97,63 @@ function StudentInfoStep({ onComplete }) {
             autoComplete="family-name"
           />
           {errors.lastName && (
-            <span id="lastName-error" role="alert">
+            <span id="lastName-error" className="form-error" role="alert">
               {errors.lastName}
             </span>
           )}
         </div>
 
-        <div>
-          <label htmlFor="dateOfBirth">Date of birth</label>
+        <div className="form-group">
+          <label className="form-label" htmlFor="dateOfBirth">Date of birth</label>
           <input
             id="dateOfBirth"
             name="dateOfBirth"
             type="date"
+            className="form-input"
             value={fields.dateOfBirth}
             onChange={handleChange}
             aria-describedby={errors.dateOfBirth ? 'dateOfBirth-error' : undefined}
             aria-invalid={errors.dateOfBirth ? 'true' : undefined}
           />
           {errors.dateOfBirth && (
-            <span id="dateOfBirth-error" role="alert">
+            <span id="dateOfBirth-error" className="form-error" role="alert">
               {errors.dateOfBirth}
             </span>
           )}
         </div>
 
-        <div>
-          <label htmlFor="gradeApplyingFor">Grade applying for</label>
+        <div className="form-group">
+          <label className="form-label" htmlFor="gradeApplyingFor">Grade applying for</label>
           <input
             id="gradeApplyingFor"
             name="gradeApplyingFor"
             type="text"
+            className="form-input"
             value={fields.gradeApplyingFor}
             onChange={handleChange}
             aria-describedby={errors.gradeApplyingFor ? 'gradeApplyingFor-error' : undefined}
             aria-invalid={errors.gradeApplyingFor ? 'true' : undefined}
+            placeholder="e.g. Grade 7"
           />
           {errors.gradeApplyingFor && (
-            <span id="gradeApplyingFor-error" role="alert">
+            <span id="gradeApplyingFor-error" className="form-error" role="alert">
               {errors.gradeApplyingFor}
             </span>
           )}
         </div>
 
         {serverError && (
-          <p role="alert" aria-live="assertive">
+          <div className="form-alert form-alert--error" role="alert" aria-live="assertive">
             {serverError}
-          </p>
+          </div>
         )}
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Saving…' : 'Next'}
+        <button type="submit" className="btn btn--primary" disabled={submitting}>
+          {submitting ? (
+            <><span className="spinner" aria-hidden="true" /> Saving…</>
+          ) : (
+            'Next →'
+          )}
         </button>
       </form>
     </section>

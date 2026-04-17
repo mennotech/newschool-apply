@@ -44,8 +44,8 @@ describe('LoginPage', () => {
 
   it('renders Google and Microsoft login links', () => {
     renderLoginPage();
-    expect(screen.getByRole('link', { name: /login with google/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /login with microsoft/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /continue with microsoft/i })).toBeInTheDocument();
   });
 
   it('redirects to /dashboard after successful login', async () => {

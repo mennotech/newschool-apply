@@ -61,44 +61,75 @@ function DocumentsStep({ onComplete }) {
 
   return (
     <section aria-labelledby="documents-heading">
-      <h2 id="documents-heading">Documents</h2>
-      <p>Upload your transcript (PDF, max 5 MB). The server will perform final validation.</p>
+      <h2 id="documents-heading" style={{ marginBottom: '0.5rem' }}>Documents</h2>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.9375rem' }}>
+        Upload your transcript (PDF, max 5 MB). The server will perform final validation.
+      </p>
 
-      <div>
-        <label htmlFor="file-upload">Select file</label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="file-upload">Select file</label>
         <input
           id="file-upload"
           ref={fileInputRef}
           type="file"
+          className="form-input"
           accept=".pdf,.doc,.docx,.jpg,.png"
           onChange={handleFileChange}
           disabled={uploading}
           aria-describedby={fileError ? 'file-upload-error' : undefined}
           aria-invalid={fileError ? 'true' : undefined}
+          style={{ paddingTop: '0.4375rem', paddingBottom: '0.4375rem', cursor: 'pointer' }}
         />
         {fileError && (
-          <span id="file-upload-error" role="alert">
+          <span id="file-upload-error" className="form-error" role="alert">
             {fileError}
           </span>
         )}
-        {serverError && (
-          <span role="alert" aria-live="assertive">
-            {serverError}
-          </span>
-        )}
-        {uploading && <span aria-live="polite">Uploading…</span>}
       </div>
 
+      {serverError && (
+        <div className="form-alert form-alert--error" role="alert" aria-live="assertive">
+          {serverError}
+        </div>
+      )}
+
+      {uploading && (
+        <div className="loading-state" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          Uploading…
+        </div>
+      )}
+
       {uploadedDocs.length > 0 && (
-        <ul aria-label="Uploaded documents">
+        <ul
+          aria-label="Uploaded documents"
+          style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem' }}
+        >
           {uploadedDocs.map((doc) => (
-            <li key={doc.id || doc.name}>{doc.name}</li>
+            <li
+              key={doc.id || doc.name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.625rem 0.875rem',
+                background: 'var(--color-success-light)',
+                border: '1px solid #bbf7d0',
+                borderRadius: 'var(--radius)',
+                marginBottom: '0.5rem',
+                fontSize: '0.9375rem',
+                color: 'var(--color-success)',
+                fontWeight: 500,
+              }}
+            >
+              ✓ {doc.name}
+            </li>
           ))}
         </ul>
       )}
 
-      <button type="button" onClick={handleContinue} disabled={uploading}>
-        Next
+      <button type="button" className="btn btn--primary" onClick={handleContinue} disabled={uploading}>
+        Next →
       </button>
     </section>
   );

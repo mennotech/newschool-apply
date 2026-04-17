@@ -20,19 +20,22 @@ function ReviewStep({ studentInfo, documents }) {
 
   if (submitted) {
     return (
-      <section aria-labelledby="review-heading">
-        <h2 id="review-heading">Application Submitted</h2>
-        <p>Your application has been submitted successfully. We will be in touch.</p>
+      <section aria-labelledby="review-heading" style={{ textAlign: 'center', padding: '2rem 0' }}>
+        <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }} aria-hidden="true">🎉</span>
+        <h2 id="review-heading" style={{ marginBottom: '0.5rem' }}>Application Submitted!</h2>
+        <p style={{ color: 'var(--color-text-muted)' }}>
+          Your application has been submitted successfully. We will be in touch.
+        </p>
       </section>
     );
   }
 
   return (
     <section aria-labelledby="review-heading">
-      <h2 id="review-heading">Review &amp; Submit</h2>
+      <h2 id="review-heading" style={{ marginBottom: '1.5rem' }}>Review &amp; Submit</h2>
 
-      <h3>Student Information</h3>
-      <dl>
+      <h3 style={{ fontSize: '1rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Student Information</h3>
+      <dl className="profile-dl" style={{ marginBottom: '2rem' }}>
         <dt>First name</dt>
         <dd>{attrs.field_first_name || '—'}</dd>
         <dt>Last name</dt>
@@ -43,25 +46,46 @@ function ReviewStep({ studentInfo, documents }) {
         <dd>{attrs.field_grade_applying_for || '—'}</dd>
       </dl>
 
-      <h3>Documents</h3>
+      <h3 style={{ fontSize: '1rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Documents</h3>
       {documents && documents.length > 0 ? (
-        <ul>
+        <ul style={{ listStyle: 'none', padding: 0, marginBottom: '2rem' }}>
           {documents.map((doc) => (
-            <li key={doc.id || doc.name}>{doc.name}</li>
+            <li
+              key={doc.id || doc.name}
+              style={{
+                padding: '0.5rem 0.875rem',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius)',
+                marginBottom: '0.5rem',
+                fontSize: '0.9375rem',
+              }}
+            >
+              {doc.name}
+            </li>
           ))}
         </ul>
       ) : (
-        <p>No documents uploaded.</p>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem' }}>No documents uploaded.</p>
       )}
 
       {error && (
-        <p role="alert" aria-live="assertive">
+        <div className="form-alert form-alert--error" role="alert" aria-live="assertive">
           {error}
-        </p>
+        </div>
       )}
 
-      <button type="button" onClick={handleSubmit} disabled={status === 'loading'}>
-        {status === 'loading' ? 'Submitting…' : 'Submit Application'}
+      <button
+        type="button"
+        className="btn btn--primary btn--lg"
+        onClick={handleSubmit}
+        disabled={status === 'loading'}
+      >
+        {status === 'loading' ? (
+          <><span className="spinner" aria-hidden="true" /> Submitting…</>
+        ) : (
+          'Submit Application'
+        )}
       </button>
     </section>
   );

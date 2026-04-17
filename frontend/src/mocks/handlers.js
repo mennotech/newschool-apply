@@ -108,4 +108,25 @@ export const handlers = [
   rest.get(`${BASE_URL}/jsonapi/node/application`, (req, res, ctx) => {
     return res(ctx.status(200), ctx.json({ data: [] }));
   }),
+
+  // Fetch single application (with optional include)
+  rest.get(`${BASE_URL}/jsonapi/node/application/:id`, (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({
+        data: {
+          id: req.params.id,
+          type: 'node--application',
+          attributes: { field_status: 'submitted', created: 1700000000 },
+          relationships: { field_student_profile: { data: null } },
+        },
+        included: [],
+      })
+    );
+  }),
+
+  // List documents filtered by application
+  rest.get(`${BASE_URL}/jsonapi/node/document`, (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json({ data: [] }));
+  }),
 ];

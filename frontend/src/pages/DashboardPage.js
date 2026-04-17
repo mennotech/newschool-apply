@@ -118,9 +118,9 @@ function DashboardPage() {
                           Continue
                         </Link>
                       ) : (
-                        <span className="btn btn--secondary btn--sm" aria-disabled="true">
+                        <Link to={`/application/${app.id}`} className="btn btn--secondary btn--sm">
                           View
-                        </span>
+                        </Link>
                       )}
                     </div>
                   </li>
