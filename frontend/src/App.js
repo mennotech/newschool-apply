@@ -17,6 +17,18 @@ function App() {
   useEffect(() => {
     dispatch(fetchCurrentUser());
   }, [dispatch]);
+
+  // Re-verify the Drupal session whenever the user returns to this tab.
+  // This catches the case where the user logged out of Drupal in another tab.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        dispatch(fetchCurrentUser());
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [dispatch]);
   return (
     <BrowserRouter>
       <Header />
