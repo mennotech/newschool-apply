@@ -21,6 +21,7 @@ function ApplicationPage() {
   const [studentInfo, setStudentInfo] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [stepError, setStepError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
   function goToStep(index) {
     navigate(`/apply/${STEPS[index]}`);
@@ -49,7 +50,7 @@ function ApplicationPage() {
         <div className="page-header">
           <h1 className="page-header__title">Application</h1>
         </div>
-        <ApplicationProgress steps={STEPS} activeStep={activeStep} />
+        <ApplicationProgress steps={STEPS} activeStep={submitted ? STEPS.length : activeStep} />
 
         {stepError && (
           <div className="form-alert form-alert--error" role="alert">
@@ -65,7 +66,7 @@ function ApplicationPage() {
             <DocumentsStep onComplete={handleDocumentsComplete} />
           )}
           {activeStep === 2 && (
-            <ReviewStep studentInfo={studentInfo} documents={documents} />
+            <ReviewStep studentInfo={studentInfo} documents={documents} onSubmitComplete={() => setSubmitted(true)} />
           )}
         </div>
       </div>

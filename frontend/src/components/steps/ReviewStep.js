@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { submitApplication } from '../../store/slices/applicationSlice';
 
-function ReviewStep({ studentInfo, documents }) {
+function ReviewStep({ studentInfo, documents, onSubmitComplete }) {
   const dispatch = useDispatch();
   const { currentApplication, status, error } = useSelector((state) => state.application);
   const [submitted, setSubmitted] = useState(false);
@@ -15,6 +15,7 @@ function ReviewStep({ studentInfo, documents }) {
     const result = await dispatch(submitApplication(applicationId));
     if (submitApplication.fulfilled.match(result)) {
       setSubmitted(true);
+      if (onSubmitComplete) onSubmitComplete();
     }
   }
 
