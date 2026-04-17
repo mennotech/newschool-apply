@@ -7,6 +7,13 @@ SITES_DEFAULT="${DRUPAL_ROOT}/web/sites/default"
 DB_PATH="${SITES_DEFAULT}/files/.sqlite"
 SETTINGS_FILE="${SITES_DEFAULT}/settings.php"
 
+# ── Substitute environment variables into services.yml ──────────────────────
+CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
+export CORS_ALLOWED_ORIGINS
+envsubst '${CORS_ALLOWED_ORIGINS}' \
+  < /var/www/html/services.yml.template \
+  > /var/www/html/web/sites/default/services.yml
+
 # ── Ensure writable directories ─────────────────────────────────────────────
 mkdir -p "${SITES_DEFAULT}/files"
 chmod 775 "${SITES_DEFAULT}/files"

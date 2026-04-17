@@ -40,8 +40,11 @@ RUN composer create-project drupal/recommended-project:^10 . --no-interaction --
 # Copy custom configuration
 COPY config/ /var/www/html/config/
 
-# Copy services.yml with CORS settings
-COPY services.yml /var/www/html/web/sites/default/services.yml
+# Install envsubst (gettext-base) for services.yml templating
+RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
+
+# Copy services.yml template (env vars substituted at container startup via init.sh)
+COPY services.yml /var/www/html/services.yml.template
 
 # Copy initialization script
 COPY init.sh /init.sh

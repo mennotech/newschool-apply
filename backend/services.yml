@@ -20,7 +20,7 @@ parameters:
     enabled: true
     allowedHeaders: ['x-csrf-token', 'authorization', 'content-type', 'content-disposition', 'accept', 'origin', 'x-requested-with']
     allowedMethods: ['*']
-    allowedOrigins: ['http://localhost:3000']
+    allowedOrigins: ['${CORS_ALLOWED_ORIGINS}']
     exposedHeaders: false
     maxAge: false
     supportsCredentials: true
