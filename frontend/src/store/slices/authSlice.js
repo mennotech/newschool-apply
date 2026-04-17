@@ -1,16 +1,26 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { post, get } from '../../api/drupalClient';
 
+/**
+ * Fetches the authenticated user's email via JSON:API.
+ * /user/{uid}?_format=json is a rendered HTML route and does not support JSON.
+ * JSON:API is the correct way to retrieve user entity data.
+ */
+async function fetchUserMail(uid) {
+  const resp = await get(`/jsonapi/user/user?filter[drupal_internal__uid]=${uid}`);
+  return resp?.data?.[0]?.attributes?.mail || null;
+}
+
 async function attemptLogin(name, pass) {
   const loginData = await post('/user/login?_format=json', { name, pass }, 'application/json');
   const uid = loginData.current_user?.uid;
   let fullUser = loginData.current_user;
   if (uid) {
     try {
-      const userEntity = await get(`/user/${uid}?_format=json`);
-      fullUser = { ...loginData.current_user, mail: userEntity.mail?.[0]?.value };
+      const mail = await fetchUserMail(uid);
+      fullUser = { ...loginData.current_user, mail };
     } catch (_) {
-      // If we can't fetch the full user, proceed without email
+      // If we can't fetch the email, proceed without it
     }
   }
   return { user: fullUser, logoutToken: loginData.logout_token };
@@ -54,8 +64,8 @@ export const fetchCurrentUser = createAsyncThunk(
       // Verify the Drupal session is still active and fetch email if missing.
       // A 403 here means the session has been invalidated (e.g. logged out in Drupal).
       try {
-        const userEntity = await get(`/user/${storedUser.uid}?_format=json`);
-        const updatedUser = { ...storedUser, mail: userEntity.mail?.[0]?.value };
+        const mail = await fetchUserMail(storedUser.uid);
+        const updatedUser = { ...storedUser, mail };
         sessionStorage.setItem('auth_user', JSON.stringify(updatedUser));
         return updatedUser;
       } catch (verifyErr) {
