@@ -44,23 +44,31 @@ function ApplicationPage() {
   }
 
   return (
-    <main>
-      <h1>Application</h1>
-      <ApplicationProgress steps={STEPS} activeStep={activeStep} />
+    <main className="application-page">
+      <div className="container">
+        <div className="page-header">
+          <h1 className="page-header__title">Application</h1>
+        </div>
+        <ApplicationProgress steps={STEPS} activeStep={activeStep} />
 
-      {stepError && (
-        <p role="alert" style={{ color: 'red' }}>{stepError}</p>
-      )}
+        {stepError && (
+          <div className="form-alert form-alert--error" role="alert">
+            {stepError}
+          </div>
+        )}
 
-      {activeStep === 0 && (
-        <StudentInfoStep onComplete={handleStudentInfoComplete} />
-      )}
-      {activeStep === 1 && (
-        <DocumentsStep onComplete={handleDocumentsComplete} />
-      )}
-      {activeStep === 2 && (
-        <ReviewStep studentInfo={studentInfo} documents={documents} />
-      )}
+        <div className="application-step-card">
+          {activeStep === 0 && (
+            <StudentInfoStep onComplete={handleStudentInfoComplete} />
+          )}
+          {activeStep === 1 && (
+            <DocumentsStep onComplete={handleDocumentsComplete} />
+          )}
+          {activeStep === 2 && (
+            <ReviewStep studentInfo={studentInfo} documents={documents} />
+          )}
+        </div>
+      </div>
     </main>
   );
 }

@@ -103,4 +103,9 @@ export const handlers = [
       })
     );
   }),
+
+  // List applications
+  rest.get(`${BASE_URL}/jsonapi/node/application`, (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json({ data: [] }));
+  }),
 ];

@@ -1,5 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { post, patch, uploadFile } from '../../api/drupalClient';
+import { get, post, patch, uploadFile } from '../../api/drupalClient';
+
+export const fetchApplications = createAsyncThunk(
+  'application/fetchApplications',
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await get('/jsonapi/node/application?sort=-created');
+      return result.data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to fetch applications');
+    }
+  }
+);
 
 export const createApplication = createAsyncThunk(
   'application/createApplication',
@@ -91,6 +103,8 @@ const applicationSlice = createSlice({
   name: 'application',
   initialState: {
     currentApplication: null,
+    applications: [],
+    fetchStatus: 'idle',
     steps: [],
     status: 'idle',
     error: null,
@@ -108,6 +122,16 @@ const applicationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchApplications.pending, (state) => {
+        state.fetchStatus = 'loading';
+      })
+      .addCase(fetchApplications.fulfilled, (state, action) => {
+        state.fetchStatus = 'idle';
+        state.applications = action.payload;
+      })
+      .addCase(fetchApplications.rejected, (state) => {
+        state.fetchStatus = 'error';
+      })
       .addCase(createApplication.pending, (state) => {
         state.status = 'loading';
         state.error = null;

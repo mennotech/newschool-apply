@@ -9,25 +9,37 @@ const STEP_LABELS = {
 function ApplicationProgress({ steps, activeStep }) {
   return (
     <nav aria-label="Application steps">
-      <ol>
+      <ol className="stepper">
         {steps.map((step, index) => {
           const isCompleted = index < activeStep;
           const isCurrent = index === activeStep;
+          const stepClass = [
+            'stepper__item',
+            isCompleted ? 'stepper__item--completed' : '',
+            isCurrent ? 'stepper__item--current' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+
           return (
             <li
               key={step}
+              className={stepClass}
               aria-current={isCurrent ? 'step' : undefined}
             >
+              <div className="stepper__dot" aria-hidden="true">
+                {isCompleted ? '✓' : index + 1}
+              </div>
               <span
+                className="stepper__label"
                 aria-label={
                   isCompleted
                     ? `${STEP_LABELS[step]} — completed`
                     : isCurrent
-                    ? `${STEP_LABELS[step]} — current`
+                    ? `${STEP_LABELS[step]} — current step`
                     : STEP_LABELS[step]
                 }
               >
-                {isCompleted ? '✓ ' : ''}
                 {STEP_LABELS[step]}
               </span>
             </li>
@@ -39,3 +51,4 @@ function ApplicationProgress({ steps, activeStep }) {
 }
 
 export default ApplicationProgress;
+
