@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import ApplicationPage from './pages/ApplicationPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import RegisterPage from './pages/RegisterPage';
 import { fetchCurrentUser } from './store/slices/authSlice';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/dashboard"
           element={

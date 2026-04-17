@@ -82,6 +82,30 @@ export const fetchCurrentUser = createAsyncThunk(
   }
 );
 
+export const registerUser = createAsyncThunk(
+  'auth/registerUser',
+  async ({ mail, pass }, { rejectWithValue }) => {
+    try {
+      await post(
+        '/jsonapi/user/user',
+        {
+          data: {
+            type: 'user--user',
+            attributes: {
+              name: mail,
+              mail,
+              pass: { value: pass },
+            },
+          },
+        },
+        'application/vnd.api+json'
+      );
+    } catch (err) {
+      return rejectWithValue(err.message || 'Registration failed');
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { getState, rejectWithValue }) => {
@@ -128,6 +152,18 @@ const authSlice = createSlice({
         sessionStorage.setItem('auth_user', JSON.stringify(action.payload.user));
       })
       .addCase(loginWithPassword.rejected, (state, action) => {
+        state.status = 'error';
+        state.error = action.payload;
+      })
+      .addCase(registerUser.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state) => {
+        state.status = 'idle';
+        state.error = null;
+      })
+      .addCase(registerUser.rejected, (state, action) => {
         state.status = 'error';
         state.error = action.payload;
       })

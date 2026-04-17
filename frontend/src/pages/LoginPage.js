@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { loginWithPassword } from '../store/slices/authSlice';
 
 const DRUPAL_BASE_URL = process.env.REACT_APP_DRUPAL_BASE_URL;
@@ -133,6 +134,11 @@ function LoginPage() {
             )}
           </button>
         </form>
+
+        <p className="auth-card__footer">
+          Don&apos;t have an account?{' '}
+          <Link to="/register">Create one</Link>
+        </p>
       </div>
     </div>
   );
