@@ -6,7 +6,7 @@ export const loginWithPassword = createAsyncThunk(
   async ({ name, pass }, { rejectWithValue }) => {
     try {
       const loginData = await post('/user/login?_format=json', { name, pass }, 'application/json');
-      return loginData.current_user;
+      return { user: loginData.current_user, logoutToken: loginData.logout_token };
     } catch (err) {
       return rejectWithValue(err.message || 'Login failed');
     }
@@ -28,9 +28,13 @@ export const fetchCurrentUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
-      await post('/user/logout?_format=json', {}, 'application/json');
+      const { logoutToken } = getState().auth;
+      const path = logoutToken
+        ? `/user/logout?_format=json&token=${encodeURIComponent(logoutToken)}`
+        : '/user/logout?_format=json';
+      await post(path, {}, 'application/json');
     } catch (err) {
       return rejectWithValue(err.message || 'Logout failed');
     }
@@ -41,6 +45,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: null,
+    logoutToken: null,
     csrfToken: null,
     status: 'idle',
     error: null,
@@ -48,6 +53,7 @@ const authSlice = createSlice({
   reducers: {
     clearAuth(state) {
       state.user = null;
+      state.logoutToken = null;
       state.csrfToken = null;
       state.status = 'idle';
       state.error = null;
@@ -61,8 +67,9 @@ const authSlice = createSlice({
       })
       .addCase(loginWithPassword.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.user = action.payload;
-        sessionStorage.setItem('auth_user', JSON.stringify(action.payload));
+        state.user = action.payload.user;
+        state.logoutToken = action.payload.logoutToken || null;
+        sessionStorage.setItem('auth_user', JSON.stringify(action.payload.user));
       })
       .addCase(loginWithPassword.rejected, (state, action) => {
         state.status = 'error';
@@ -82,6 +89,16 @@ const authSlice = createSlice({
       })
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
+        state.logoutToken = null;
+        state.csrfToken = null;
+        state.status = 'idle';
+        state.error = null;
+        sessionStorage.removeItem('auth_user');
+      })
+      .addCase(logoutUser.rejected, (state) => {
+        // Clear local auth state even if the server-side logout call failed
+        state.user = null;
+        state.logoutToken = null;
         state.csrfToken = null;
         state.status = 'idle';
         state.error = null;
