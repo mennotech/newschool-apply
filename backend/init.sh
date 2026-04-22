@@ -6,6 +6,17 @@ DRUSH="${DRUPAL_ROOT}/vendor/bin/drush"
 SITES_DEFAULT="${DRUPAL_ROOT}/web/sites/default"
 DB_PATH="${SITES_DEFAULT}/files/.sqlite"
 SETTINGS_FILE="${SITES_DEFAULT}/settings.php"
+CONFIG_SYNC_DIR="/var/www/html/config/sync"
+CONFIG_HASH_FILE="${SITES_DEFAULT}/files/.config_hash"
+
+is_installed_sqlite() {
+  if [ ! -f "${DB_PATH}" ]; then
+    return 1
+  fi
+
+  # Only treat the DB as installed if a core Drupal table exists.
+  sqlite3 "${DB_PATH}" "SELECT name FROM sqlite_master WHERE type='table' AND name='key_value';" 2>/dev/null | grep -q '^key_value$'
+}
 
 # ── Substitute environment variables into services.yml ──────────────────────
 CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
@@ -25,7 +36,7 @@ if [ ! -f "${SETTINGS_FILE}" ]; then
 fi
 
 # ── Append SQLite database config if not already present ─────────────────────
-if ! grep -q "sqlite" "${SETTINGS_FILE}"; then
+if ! grep -Fq "'database' => '/var/www/html/web/sites/default/files/.sqlite'" "${SETTINGS_FILE}"; then
   cat >> "${SETTINGS_FILE}" <<'EOF'
 
 $databases['default']['default'] = [
@@ -41,11 +52,78 @@ fi
 
 chown -R www-data:www-data "${SITES_DEFAULT}"
 
-# ── Skip if Drupal is already installed ─────────────────────────────────────
-if sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" status bootstrap 2>/dev/null | grep -q "Successful"; then
-  echo "[init.sh] Drupal already installed — skipping installation."
+# ── Function: enable required modules (runs only after a fresh site install) ──
+enable_modules() {
+  # Delete jsonapi.settings if it was imported before the module was enabled,
+  # which causes PreExistingConfigException. The module will recreate it.
+  echo "[init.sh] Enabling modules..."
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:delete jsonapi.settings --yes 2>/dev/null || true
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" pm:enable \
+    jsonapi \
+    serialization \
+    basic_auth \
+    rest \
+    file \
+    image \
+    --yes || true
+
+  echo "[init.sh] Enabling JSON:API write mode..."
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:set jsonapi.settings read_only 0 --yes
+
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" pm:enable \
+    social_auth \
+    social_auth_google \
+    social_auth_microsoft \
+    --yes 2>/dev/null || echo "[init.sh] Social auth modules not available yet — skipping."
+
+  echo "[init.sh] Creating roles..."
+  for ROLE in parent applicant_reviewer; do
+    sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" \
+      role:create "${ROLE}" 2>/dev/null || echo "[init.sh] Role '${ROLE}' already exists."
+  done
+}
+
+# ── Function: apply config/sync when its content has changed ─────────────────
+apply_config() {
+  compute_config_hash() {
+    find "${CONFIG_SYNC_DIR}" -type f | sort | xargs md5sum 2>/dev/null | md5sum | awk '{print $1}'
+  }
+
+  if [ ! -d "${CONFIG_SYNC_DIR}" ] || [ -z "$(ls -A "${CONFIG_SYNC_DIR}")" ]; then
+    echo "[init.sh] No config/sync content found — skipping config import."
+    return
+  fi
+
+  CURRENT_HASH="$(compute_config_hash)"
+  APPLIED_HASH=""
+  if [ -f "${CONFIG_HASH_FILE}" ]; then
+    APPLIED_HASH="$(cat "${CONFIG_HASH_FILE}")"
+  fi
+
+  if [ "${CURRENT_HASH}" = "${APPLIED_HASH}" ]; then
+    echo "[init.sh] Config hash unchanged (${CURRENT_HASH}) — skipping config import."
+  else
+    echo "[init.sh] Config hash changed (applied: ${APPLIED_HASH:-none} → current: ${CURRENT_HASH}) — importing configuration..."
+    if sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:import --partial --source="${CONFIG_SYNC_DIR}" --yes; then
+      echo "${CURRENT_HASH}" > "${CONFIG_HASH_FILE}"
+      chown www-data:www-data "${CONFIG_HASH_FILE}"
+      echo "[init.sh] Configuration imported and hash recorded."
+    else
+      echo "[init.sh] Configuration import FAILED — hash not updated, will retry on next startup."
+    fi
+  fi
+}
+
+# ── Install Drupal only if a valid SQLite site database exists ───────────────
+if is_installed_sqlite; then
+  echo "[init.sh] SQLite database with Drupal schema found — skipping installation."
 else
-  echo "[init.sh] Installing Drupal via Drush..."
+  if [ -f "${DB_PATH}" ]; then
+    echo "[init.sh] SQLite file exists but is not initialized for Drupal — reinstalling site..."
+    rm -f "${DB_PATH}"
+  else
+    echo "[init.sh] No SQLite database found — installing Drupal..."
+  fi
 
   ADMIN_USER="${DRUPAL_ADMIN_USER:-admin}"
   ADMIN_PASS="${DRUPAL_ADMIN_PASS:-changeme}"
@@ -61,45 +139,10 @@ else
     --yes
 
   echo "[init.sh] Drupal installed successfully."
+  enable_modules
 fi
 
-# ── Import configuration ──────────────────────────────────────────────────────
-if [ -d "/var/www/html/config/sync" ] && [ "$(ls -A /var/www/html/config/sync)" ]; then
-  echo "[init.sh] Importing configuration..."
-  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:import --partial --source=/var/www/html/config/sync --yes || true
-fi
-
-# ── Enable required modules ───────────────────────────────────────────────────
-# Delete jsonapi.settings if it was imported before the module was enabled,
-# which causes PreExistingConfigException. The module will recreate it.
-echo "[init.sh] Enabling modules..."
-sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:delete jsonapi.settings --yes 2>/dev/null || true
-sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" pm:enable \
-  jsonapi \
-  serialization \
-  basic_auth \
-  rest \
-  file \
-  image \
-  --yes || true
-
-# ── Enable JSON:API writes ────────────────────────────────────────────────────
-echo "[init.sh] Enabling JSON:API write mode..."
-sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" config:set jsonapi.settings read_only 0 --yes
-
-# Enable social auth modules only if available
-sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" pm:enable \
-  social_auth \
-  social_auth_google \
-  social_auth_microsoft \
-  --yes 2>/dev/null || echo "[init.sh] Social auth modules not available yet — skipping."
-
-# ── Create roles if they don't exist ─────────────────────────────────────────
-echo "[init.sh] Creating roles..."
-for ROLE in parent applicant_reviewer; do
-  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" \
-    role:create "${ROLE}" 2>/dev/null || echo "[init.sh] Role '${ROLE}' already exists."
-done
+apply_config
 
 # ── Clear caches ─────────────────────────────────────────────────────────────
 echo "[init.sh] Clearing caches..."
