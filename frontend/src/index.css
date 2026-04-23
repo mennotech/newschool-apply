@@ -337,6 +337,39 @@ button {
   display: block;
 }
 
+fieldset {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row--spacious {
+  gap: 2rem;
+}
+
+.form-row__item {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-row__item--min {
+  flex: 1 1;
+}
+
+.form-row__item--wide {
+  flex: 2;
+}
+
+.form-row__item--narrow {
+  flex: 1;
+}
+
 .form-input {
   padding: 0.625rem 0.875rem;
   border: 1.5px solid var(--color-border);
@@ -382,6 +415,63 @@ button {
   background: var(--color-danger-light);
   color: var(--color-danger);
   border: 1px solid #fecaca;
+}
+
+.form-alert--warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid #fcd34d;
+}
+
+.form-alert--success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border: 1px solid #bbf7d0;
+}
+
+.form-validation-note {
+  margin-top: 0.75rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1100;
+}
+
+.modal-card {
+  width: min(100%, 32rem);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+}
+
+.modal-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.modal-card__body {
+  margin: 0 0 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.modal-card__list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  color: var(--color-text);
+}
+
+.modal-card__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .form-select {
@@ -722,6 +812,35 @@ button {
   color: var(--color-text-muted);
 }
 
+.app-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.app-card__meta-row {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.app-card__meta-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.app-card__meta-value {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .app-card__actions {
   display: flex;
   gap: 0.75rem;
@@ -778,6 +897,21 @@ button {
   flex-direction: column;
   align-items: center;
   position: relative;
+}
+
+.stepper__button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.stepper__button:disabled {
+  cursor: not-allowed;
 }
 
 /* Connector line between steps */
@@ -1035,5 +1169,10 @@ button {
     justify-content: flex-start;
     padding-left: 0.5rem;
     color: var(--color-danger);
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
   }
 }
