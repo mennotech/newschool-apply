@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_physical_state_province
+    - node.type.application
+id: node.application.field_physical_state_province
+field_name: field_physical_state_province
+entity_type: node
+bundle: application
+label: State / Province
+description: 'Section: Student Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

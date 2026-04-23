@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_medications_used_fr_2b9881
+    - node.type.application
+id: node.application.field_medications_used_fr_2b9881
+field_name: field_medications_used_fr_2b9881
+entity_type: node
+bundle: application
+label: Medications Used Frequently
+description: 'Section: Health Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: text_long

@@ -347,6 +347,8 @@ function buildStorageConfig(fieldName, mapping) {
 }
 
 function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
+  const required = bundle === 'application' ? false : Boolean(field.required);
+
   return {
     langcode: 'en',
     status: true,
@@ -359,7 +361,7 @@ function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
     bundle,
     label: field.label,
     description: section ? `Section: ${section.title}` : '',
-    required: Boolean(field.required),
+    required,
     translatable: false,
     default_value: {},
     default_value_callback: '',

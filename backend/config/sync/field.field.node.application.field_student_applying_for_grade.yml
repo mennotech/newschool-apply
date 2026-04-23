@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_student_applying_for_grade
+    - node.type.application
+id: node.application.field_student_applying_for_grade
+field_name: field_student_applying_for_grade
+entity_type: node
+bundle: application
+label: Applying For Grade
+description: 'Section: Student Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

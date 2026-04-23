@@ -96,6 +96,11 @@ sections:
         label: Denomination
         type: text
         required: false
+      - key: section_1_reviewed
+        label: Section 1 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
   - id: section_2
     title: Health Information
@@ -129,6 +134,11 @@ sections:
         label: Medical Restrictions
         type: textarea
         required: false
+      - key: section_2_reviewed
+        label: Section 2 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
   - id: section_3
     title: Parent / Guardian Information
@@ -207,6 +217,11 @@ sections:
         type: radio
         required: true
         options: [joint, mother, father, other]
+      - key: section_3_reviewed
+        label: Section 3 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
   - id: section_4
     title: Additional Support Declaration
@@ -224,6 +239,16 @@ sections:
         label: Psychological Support
         type: textarea
         required: false
+      - key: support_declaration_reviewed
+        label: Support Declaration Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
+      - key: section_4_reviewed
+        label: Section 4 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
   - id: section_5
     title: Parent Questionnaire
@@ -241,6 +266,11 @@ sections:
         label: Reason for Wanting Child to Attend Steinbach Christian School
         type: textarea
         required: true
+      - key: section_5_reviewed
+        label: Section 5 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
   - id: section_6
     title: Statement of Commitment
@@ -250,6 +280,11 @@ sections:
         label: Parent/Guardian Signature
         type: signature
         required: true
+      - key: section_6_reviewed
+        label: Section 6 Reviewed
+        type: radio
+        required: false
+        options: [yes, no]
 
 notes:
   - This schema is intentionally high-level and designed for later Drupal field mapping and frontend rendering.

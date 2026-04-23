@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_physical_city
+    - node.type.application
+id: node.application.field_physical_city
+field_name: field_physical_city
+entity_type: node
+bundle: application
+label: City
+description: 'Section: Student Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string
