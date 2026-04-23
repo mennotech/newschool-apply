@@ -3,6 +3,11 @@ import { rest } from 'msw';
 const BASE_URL = process.env.REACT_APP_DRUPAL_BASE_URL || 'http://localhost:8080';
 
 export const handlers = [
+  // Login status (1 = authenticated, 0 = anonymous)
+  rest.get(`${BASE_URL}/user/login_status`, (req, res, ctx) => {
+    return res(ctx.status(200), ctx.text('0'));
+  }),
+
   // CSRF token
   rest.get(`${BASE_URL}/session/token`, (req, res, ctx) => {
     return res(ctx.status(200), ctx.text('mock-csrf-token'));
@@ -26,6 +31,10 @@ export const handlers = [
   // Note: /user/me does not exist in Drupal 10. Session restore uses sessionStorage.
 
   // User logout
+  rest.get(`${BASE_URL}/user/logout`, (req, res, ctx) => {
+    return res(ctx.status(204));
+  }),
+
   rest.post(`${BASE_URL}/user/logout`, (req, res, ctx) => {
     return res(ctx.status(204));
   }),
@@ -72,6 +81,11 @@ export const handlers = [
         },
       })
     );
+  }),
+
+  // Delete application
+  rest.delete(`${BASE_URL}/jsonapi/node/application/:id`, (req, res, ctx) => {
+    return res(ctx.status(204));
   }),
 
   // File upload

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { get, post, patch, uploadFile } from '../../api/drupalClient';
+import { del, get, post, patch, uploadFile } from '../../api/drupalClient';
 
 export const fetchApplications = createAsyncThunk(
   'application/fetchApplications',
@@ -17,6 +17,14 @@ export const createApplication = createAsyncThunk(
   'application/createApplication',
   async (studentProfileId, { rejectWithValue }) => {
     try {
+      const relationships = studentProfileId
+        ? {
+          field_student_profile: {
+            data: { type: 'node--student_profile', id: studentProfileId },
+          },
+        }
+        : undefined;
+
       const data = {
         data: {
           type: 'node--application',
@@ -24,11 +32,7 @@ export const createApplication = createAsyncThunk(
             title: 'Application',
             field_status: 'pending',
           },
-          relationships: {
-            field_student_profile: {
-              data: { type: 'node--student_profile', id: studentProfileId },
-            },
-          },
+          ...(relationships ? { relationships } : {}),
         },
       };
       const result = await post('/jsonapi/node/application', data);
@@ -99,6 +103,77 @@ export const uploadAndCreateDocument = createAsyncThunk(
   }
 );
 
+export const fetchApplicationById = createAsyncThunk(
+  'application/fetchApplicationById',
+  async (applicationId, { rejectWithValue }) => {
+    try {
+      const result = await get(`/jsonapi/node/application/${applicationId}`);
+      return result.data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to fetch application');
+    }
+  }
+);
+
+export const deleteApplication = createAsyncThunk(
+  'application/deleteApplication',
+  async (applicationId, { rejectWithValue }) => {
+    try {
+      await del(`/jsonapi/node/application/${applicationId}`);
+      return applicationId;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to delete application');
+    }
+  }
+);
+
+export const patchDraftApplication = createAsyncThunk(
+  'application/patchDraftApplication',
+  async ({ applicationId, attributes, relationships }, { rejectWithValue }) => {
+    try {
+      const data = {
+        data: {
+          type: 'node--application',
+          id: applicationId,
+          ...(attributes ? { attributes } : {}),
+          ...(relationships ? { relationships } : {}),
+        },
+      };
+      const result = await patch(`/jsonapi/node/application/${applicationId}`, data);
+      return result.data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to autosave');
+    }
+  }
+);
+
+/**
+ * Patch all application form fields and mark the application as submitted in one request.
+ * Argument: { applicationId, attributes } where attributes is the full field map.
+ */
+export const patchAndSubmitApplication = createAsyncThunk(
+  'application/patchAndSubmitApplication',
+  async ({ applicationId, attributes }, { rejectWithValue }) => {
+    try {
+      const data = {
+        data: {
+          type: 'node--application',
+          id: applicationId,
+          attributes: {
+            ...attributes,
+            field_status: 'submitted',
+            field_submitted_at: new Date().toISOString().replace(/\.\d{3}Z$/, '+00:00'),
+          },
+        },
+      };
+      const result = await patch(`/jsonapi/node/application/${applicationId}`, data);
+      return result.data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to submit application');
+    }
+  }
+);
+
 const applicationSlice = createSlice({
   name: 'application',
   initialState: {
@@ -164,6 +239,46 @@ const applicationSlice = createSlice({
         state.status = 'idle';
       })
       .addCase(uploadAndCreateDocument.rejected, (state, action) => {
+        state.status = 'error';
+        state.error = action.payload;
+      })
+      .addCase(fetchApplicationById.pending, (state) => {
+        state.fetchStatus = 'loading';
+      })
+      .addCase(fetchApplicationById.fulfilled, (state, action) => {
+        state.fetchStatus = 'idle';
+        state.currentApplication = action.payload;
+      })
+      .addCase(fetchApplicationById.rejected, (state) => {
+        state.fetchStatus = 'error';
+      })
+      .addCase(patchDraftApplication.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(deleteApplication.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(deleteApplication.fulfilled, (state, action) => {
+        state.status = 'idle';
+        state.applications = state.applications.filter((app) => app.id !== action.payload);
+        if (state.currentApplication?.id === action.payload) {
+          state.currentApplication = null;
+        }
+      })
+      .addCase(deleteApplication.rejected, (state, action) => {
+        state.status = 'error';
+        state.error = action.payload;
+      })
+      .addCase(patchAndSubmitApplication.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(patchAndSubmitApplication.fulfilled, (state, action) => {
+        state.status = 'idle';
+        state.currentApplication = action.payload;
+      })
+      .addCase(patchAndSubmitApplication.rejected, (state, action) => {
         state.status = 'error';
         state.error = action.payload;
       });

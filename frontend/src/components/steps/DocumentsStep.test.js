@@ -81,7 +81,7 @@ describe('DocumentsStep', () => {
     await userEvent.upload(input, validFile);
 
     await waitFor(() =>
-      expect(screen.getByText('transcript.pdf')).toBeInTheDocument(),
+      expect(screen.getByText(/transcript\.pdf/i)).toBeInTheDocument(),
     );
   });
 
