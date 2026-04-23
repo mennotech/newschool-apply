@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { post } from '../../api/drupalClient';
+import AddressChunk from '../AddressChunk';
 
 const CITIZENSHIP_OPTIONS = [
   { value: 'canadian_citizen', label: 'Canadian Citizen' },
@@ -25,6 +26,11 @@ const INITIAL_FIELDS = {
   physical_state_province: '',
   physical_postal_zip: '',
   mailing_address_differs: '',
+  mailing_address_line_1: '',
+  mailing_address_line_2: '',
+  mailing_address_city: '',
+  mailing_address_state_province: '',
+  mailing_address_postal_zip: '',
   citizenship_status: '',
   attended_mb_school_before: '',
   church_attending: '',
@@ -63,6 +69,15 @@ function StudentInfoStep({ onComplete, initialData = {}, applicationId, isResume
     if (!fields.citizenship_status) errs.citizenship_status = 'Citizenship status is required.';
     if (!fields.mailing_address_differs) errs.mailing_address_differs = 'Please indicate if mailing address differs.';
     if (!fields.attended_mb_school_before) errs.attended_mb_school_before = 'Please answer this question.';
+
+    // Validate mailing address fields if different
+    if (fields.mailing_address_differs === 'yes') {
+      if (!fields.mailing_address_line_1.trim()) errs.mailing_address_line_1 = 'Street address is required.';
+      if (!fields.mailing_address_city.trim()) errs.mailing_address_city = 'City is required.';
+      if (!fields.mailing_address_state_province.trim()) errs.mailing_address_state_province = 'Province is required.';
+      if (!fields.mailing_address_postal_zip.trim()) errs.mailing_address_postal_zip = 'Postal code is required.';
+    }
+
     return errs;
   }
 
@@ -205,23 +220,34 @@ function StudentInfoStep({ onComplete, initialData = {}, applicationId, isResume
         {field('primary_home_phone', 'Primary / Home Phone Number', { type: 'tel', autoComplete: 'tel', placeholder: '(000) 000-0000' })}
 
         <h3 className="form-section-title" style={{ marginTop: '1.25rem' }}>Physical Address</h3>
-        {field('physical_address_line_1', 'Street Address', { autoComplete: 'address-line1' })}
-        {field('physical_address_line_2', 'Street Address Line 2', { autoComplete: 'address-line2' })}
-        <div className="form-row">
-          <div className="form-row__item form-row__item--wide">
-            {field('physical_city', 'City', { autoComplete: 'address-level2' })}
-          </div>
-          <div className="form-row__item form-row__item--narrow">
-            {field('physical_state_province', 'Province', { autoComplete: 'address-level1' })}
-          </div>
-        </div>
-        {field('physical_postal_zip', 'Postal / Zip Code', { autoComplete: 'postal-code' })}
+        <AddressChunk
+          fieldPrefix="physical_address"
+          values={fields}
+          errors={errors}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          required={true}
+        />
 
         {radioGroup(
           'mailing_address_differs',
           'Is your Mailing Address different from your Physical Address?',
           [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
           true
+        )}
+
+        {fields.mailing_address_differs === 'yes' && (
+          <div style={{ marginTop: '1.5rem' }}>
+            <h3 className="form-section-title">Mailing Address</h3>
+            <AddressChunk
+              fieldPrefix="mailing_address"
+              values={fields}
+              errors={errors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required={true}
+            />
+          </div>
         )}
 
         {radioGroup('citizenship_status', 'Citizenship Status', CITIZENSHIP_OPTIONS, true)}

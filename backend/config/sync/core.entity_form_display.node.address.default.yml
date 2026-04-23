@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.address
+  module:
+    - node
+id: node.address.default
+targetEntityType: node
+bundle: address
+mode: default
+content: {}
+hidden: {}

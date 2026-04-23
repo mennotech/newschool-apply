@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AddressChunk from '../AddressChunk';
 
 const RELATIONSHIP_OPTIONS = [
   { value: 'married', label: 'Married' },
@@ -26,6 +27,11 @@ const INITIAL_FIELDS = {
   father_surname: '',
   father_given_name: '',
   father_address_same_as_student: '',
+  father_address_line_1: '',
+  father_address_line_2: '',
+  father_address_city: '',
+  father_address_state_province: '',
+  father_address_postal_zip: '',
   father_workplace: '',
   father_work_number: '',
   father_cell_number: '',
@@ -33,6 +39,11 @@ const INITIAL_FIELDS = {
   mother_surname: '',
   mother_given_name: '',
   mother_address_same_as_student: '',
+  mother_address_line_1: '',
+  mother_address_line_2: '',
+  mother_address_city: '',
+  mother_address_state_province: '',
+  mother_address_postal_zip: '',
   mother_workplace: '',
   mother_work_number: '',
   mother_cell_number: '',
@@ -159,6 +170,21 @@ function ParentInfoStep({ onComplete, onBack, initialData = {}, onFieldBlur }) {
           <div className="form-row__item">{textField('father_given_name', "Father's Given Name")}</div>
         </div>
         {addressSameGroup('father_address_same_as_student', "Father's Address Same as Student")}
+        
+        {fields.father_address_same_as_student === 'no' && (
+          <div style={{ marginTop: '1rem' }}>
+            <AddressChunk
+              title="Father's Address"
+              fieldPrefix="father_address"
+              values={fields}
+              errors={errors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required={false}
+            />
+          </div>
+        )}
+        
         <div className="form-row">
           <div className="form-row__item">{textField('father_workplace', "Father's Workplace")}</div>
           <div className="form-row__item">{textField('father_work_number', "Father's Work Number", { type: 'tel', placeholder: '(000) 000-0000' })}</div>
@@ -174,6 +200,21 @@ function ParentInfoStep({ onComplete, onBack, initialData = {}, onFieldBlur }) {
           <div className="form-row__item">{textField('mother_given_name', "Mother's Given Name")}</div>
         </div>
         {addressSameGroup('mother_address_same_as_student', "Mother's Address Same as Student")}
+        
+        {fields.mother_address_same_as_student === 'no' && (
+          <div style={{ marginTop: '1rem' }}>
+            <AddressChunk
+              title="Mother's Address"
+              fieldPrefix="mother_address"
+              values={fields}
+              errors={errors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required={false}
+            />
+          </div>
+        )}
+        
         <div className="form-row">
           <div className="form-row__item">{textField('mother_workplace', "Mother's Workplace")}</div>
           <div className="form-row__item">{textField('mother_work_number', "Mother's Work Number", { type: 'tel', placeholder: '(000) 000-0000' })}</div>
