@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { post, get } from '../../api/drupalClient';
+import { post, get, logout, getLoginStatus, getLogoutToken } from '../../api/drupalClient';
 
 /**
  * Fetches the authenticated user's email via JSON:API.
@@ -36,7 +36,13 @@ export const loginWithPassword = createAsyncThunk(
       // Clear that session and retry once.
       if (err.status === 403) {
         try {
-          await post('/user/logout?_format=json', {}, 'application/json');
+          let recoveredToken = null;
+          try {
+            recoveredToken = await getLogoutToken();
+          } catch (_) {
+            // Fall through and attempt logout without a recovered token.
+          }
+          await logout(recoveredToken);
         } catch (_) {
           // Ignore logout errors; the session may already be invalid
         }
@@ -57,19 +63,41 @@ export const fetchCurrentUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const raw = sessionStorage.getItem('auth_user');
-      if (!raw) return rejectWithValue('No session');
-      const storedUser = JSON.parse(raw);
-      if (!storedUser || !storedUser.uid) return rejectWithValue('No session');
+      if (!raw) {
+        // If Drupal session exists (e.g. user logged in from Drupal UI),
+        // bootstrap a lightweight frontend auth user from backend session state.
+        const isLoggedIn = await getLoginStatus();
+        if (!isLoggedIn) return rejectWithValue('No session');
 
-      // Verify the Drupal session is still active and fetch email if missing.
-      // A 403 here means the session has been invalidated (e.g. logged out in Drupal).
+        const backendSessionUser = {
+          uid: 'session',
+          name: 'Authenticated User',
+        };
+        sessionStorage.setItem('auth_user', JSON.stringify(backendSessionUser));
+        return backendSessionUser;
+      }
+
+      const storedUser = JSON.parse(raw);
+      if (!storedUser || !storedUser.uid) {
+        sessionStorage.removeItem('auth_user');
+        return rejectWithValue('No session');
+      }
+
+      // Verify session state via Drupal's auth status route.
       try {
+        const isLoggedIn = await getLoginStatus();
+        if (!isLoggedIn) {
+          sessionStorage.removeItem('auth_user');
+          return rejectWithValue('Session expired');
+        }
+
+        // Session is active; enrich user data when possible.
         const mail = await fetchUserMail(storedUser.uid);
         const updatedUser = { ...storedUser, mail };
         sessionStorage.setItem('auth_user', JSON.stringify(updatedUser));
         return updatedUser;
       } catch (verifyErr) {
-        if (verifyErr.status === 403 || verifyErr.status === 401) {
+        if (verifyErr.status === 401) {
           sessionStorage.removeItem('auth_user');
           return rejectWithValue('Session expired');
         }
@@ -111,11 +139,20 @@ export const logoutUser = createAsyncThunk(
   async (_, { getState, rejectWithValue }) => {
     try {
       const { logoutToken } = getState().auth;
-      const path = logoutToken
-        ? `/user/logout?_format=json&token=${encodeURIComponent(logoutToken)}`
-        : '/user/logout?_format=json';
-      await post(path, {}, 'application/json');
+      let effectiveLogoutToken = logoutToken || null;
+      if (!effectiveLogoutToken) {
+        try {
+          effectiveLogoutToken = await getLogoutToken();
+        } catch (_) {
+          // If we cannot recover a logout token, attempt logout anyway.
+        }
+      }
+      await logout(effectiveLogoutToken);
     } catch (err) {
+      console.error('Logout request failed', {
+        status: err?.status || null,
+        message: err?.message || 'Unknown logout error',
+      });
       return rejectWithValue(err.message || 'Logout failed');
     }
   }
@@ -187,14 +224,11 @@ const authSlice = createSlice({
         state.error = null;
         sessionStorage.removeItem('auth_user');
       })
-      .addCase(logoutUser.rejected, (state) => {
-        // Clear local auth state even if the server-side logout call failed
-        state.user = null;
-        state.logoutToken = null;
-        state.csrfToken = null;
-        state.status = 'idle';
-        state.error = null;
-        sessionStorage.removeItem('auth_user');
+      .addCase(logoutUser.rejected, (state, action) => {
+        // Preserve local auth state when server-side logout fails.
+        // This avoids presenting a logged-out UI while the Drupal session cookie still exists.
+        state.status = 'error';
+        state.error = action.payload || 'Logout failed';
       });
   },
 });

@@ -61,6 +61,56 @@ export async function get(path) {
 }
 
 /**
+ * Returns true when Drupal reports an authenticated session, false otherwise.
+ * Uses the core login_status route which is safe for anonymous access.
+ * @returns {Promise<boolean>}
+ */
+export async function getLoginStatus() {
+  const response = await fetch(`${BASE_URL}/user/login_status?_format=json`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json, text/plain',
+    },
+  });
+
+  if (!response.ok) {
+    throw await buildError(response);
+  }
+
+  const body = (await response.text()).trim();
+  return body === '1' || body === 'true';
+}
+
+/**
+ * Recovers Drupal's logout token from an authenticated HTML page.
+ * This is needed when the user authenticated outside the frontend flow
+ * (e.g. directly in Drupal) and no logout token is stored client-side.
+ * @returns {Promise<string>}
+ */
+export async function getLogoutToken() {
+  const response = await fetch(`${BASE_URL}/`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      Accept: 'text/html',
+    },
+  });
+
+  if (!response.ok) {
+    throw await buildError(response);
+  }
+
+  const html = await response.text();
+  const tokenMatch = html.match(/\/user\/logout\?token=([^"'&<>\s]+)/i);
+  if (!tokenMatch || !tokenMatch[1]) {
+    throw new Error('Failed to resolve logout token from active Drupal session');
+  }
+
+  return decodeURIComponent(tokenMatch[1]);
+}
+
+/**
  * POST request — fetches CSRF token first, then sends JSON body.
  * @param {string} path
  * @param {object} body
@@ -91,6 +141,43 @@ export async function post(path, body, contentType = 'application/vnd.api+json')
 }
 
 /**
+ * Logout request — prefers Drupal's tokenized logout route to invalidate
+ * the session cookie, then falls back to CSRF-protected POST.
+ * @param {string|null} [logoutToken]
+ * @returns {Promise<void>}
+ */
+export async function logout(logoutToken = null) {
+  const tokenQuery = logoutToken ? `&token=${encodeURIComponent(logoutToken)}` : '';
+  const getResponse = await fetch(`${BASE_URL}/user/logout?_format=json${tokenQuery}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (getResponse.ok) {
+    return;
+  }
+
+  const csrfToken = await fetchCsrfToken();
+  const postResponse = await fetch(`${BASE_URL}/user/logout?_format=json${tokenQuery}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!postResponse.ok) {
+    throw await buildError(postResponse);
+  }
+}
+
+/**
  * PATCH request — fetches CSRF token first, then sends JSON body.
  * @param {string} path
  * @param {object} body
@@ -112,6 +199,26 @@ export async function patch(path, body) {
     throw await buildError(response);
   }
   return response.json();
+}
+
+/**
+ * DELETE request — fetches CSRF token first, then sends delete.
+ * @param {string} path
+ * @returns {Promise<void>}
+ */
+export async function del(path) {
+  const csrfToken = await fetchCsrfToken();
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/vnd.api+json',
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!response.ok) {
+    throw await buildError(response);
+  }
 }
 
 /**

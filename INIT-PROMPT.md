@@ -126,12 +126,25 @@ Use `react-router-dom` (already in project). Routes:
 #### Authentication Flow
 
 1. `LoginPage` renders:
-   - Email + Password form → `POST /user/login` (Drupal's built-in endpoint, JSON body `{ name, pass }`)
+   - Email + Password form → `POST /user/login?_format=json` (JSON body `{ name, pass }`)
    - "Login with Google" link → redirect to `{DRUPAL_BASE_URL}/social-auth/google` (Drupal handles OAuth)
    - "Login with Microsoft" link → redirect to `{DRUPAL_BASE_URL}/social-auth/microsoft`
-2. On successful login, fetch current user from `/jsonapi/` or `/user/me` and store in Redux `auth` slice.
-3. For all state-changing requests (POST/PATCH/DELETE), fetch CSRF token from `{DRUPAL_BASE_URL}/session/token` and send as `X-CSRF-Token` header.
-4. `ProtectedRoute` component — redirects to `/login` if `auth.user` is null.
+2. On successful login, Drupal returns `{ current_user, logout_token, csrf_token }`. Store `current_user` and `logout_token` in Redux `auth` slice.
+3. On app init / tab refocus, call `GET /user/login_status?_format=json` (returns `1` or `0`) to verify the session is still active. Do **not** use a JSON:API user query for this check — it is permission-sensitive and may return 403 for valid sessions.
+4. If `login_status` returns `1` but there is no local auth state (e.g. user signed in via Drupal admin UI), **bootstrap a lightweight user** from the session rather than forcing a re-login.
+5. For all state-changing requests (POST/PATCH/DELETE), fetch CSRF token from `{DRUPAL_BASE_URL}/session/token` and send as `X-CSRF-Token` header.
+6. To log out, call `GET /user/logout?_format=json&token={logoutToken}`. The `token` query parameter is the `logout_token` returned by the login response — **this is not the CSRF token**. Without the correct token, Drupal returns 403 (the error message says "csrf_token URL query argument is missing" which is misleading — the actual requirement is the `token` param).
+7. Only clear local auth state after receiving a successful logout response. If the server logout fails, preserve local state so the user can retry.
+8. `ProtectedRoute` component — redirects to `/login` if `auth.user` is null.
+
+**Drupal auth API summary:**
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/user/login?_format=json` | POST | Authenticate; returns `current_user`, `logout_token`, `csrf_token` |
+| `/user/logout?_format=json&token={logoutToken}` | GET | Invalidate session; `token` param is the `logout_token` from login |
+| `/user/login_status?_format=json` | GET | Returns `1` (authenticated) or `0`; safe for all users |
+| `/session/token` | GET | Returns CSRF token for state-changing requests |
 
 #### Multi-Step Application Form
 
@@ -165,6 +178,9 @@ Create `frontend/src/api/drupalClient.js`:
 - `post(path, body)` — fetch CSRF token, then POST JSON
 - `patch(path, body)` — fetch CSRF token, then PATCH JSON
 - `uploadFile(path, file)` — fetch CSRF token, then POST multipart/form-data
+- `logout(logoutToken)` — GET `/user/logout?_format=json&token={logoutToken}`; the `token` param is the `logout_token` from the login response, not the CSRF token
+- `getLoginStatus()` — GET `/user/login_status?_format=json`; returns boolean; safe to call unauthenticated
+- `getLogoutToken()` — recovers the logout token from an active Drupal session (used when the frontend bootstrapped from a backend session and never received a login response)
 - All functions read base URL from `process.env.REACT_APP_DRUPAL_BASE_URL`
 - All functions throw structured errors from Drupal's JSON:API error format
 

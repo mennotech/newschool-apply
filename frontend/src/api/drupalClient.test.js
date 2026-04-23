@@ -93,4 +93,69 @@ describe('drupalClient', () => {
       expect(result.ok).toBe(true);
     });
   });
+
+  describe('getLoginStatus', () => {
+    it('returns true when Drupal responds with 1', async () => {
+      server.use(
+        rest.get(`${BASE_URL}/user/login_status`, (req, res, ctx) => res(ctx.status(200), ctx.text('1')))
+      );
+
+      await expect(client.getLoginStatus()).resolves.toBe(true);
+    });
+
+    it('returns false when Drupal responds with 0', async () => {
+      server.use(
+        rest.get(`${BASE_URL}/user/login_status`, (req, res, ctx) => res(ctx.status(200), ctx.text('0')))
+      );
+
+      await expect(client.getLoginStatus()).resolves.toBe(false);
+    });
+  });
+
+  describe('getLogoutToken', () => {
+    it('extracts logout token from authenticated HTML', async () => {
+      server.use(
+        rest.get(`${BASE_URL}/`, (req, res, ctx) =>
+          res(
+            ctx.status(200),
+            ctx.text('<a href="/user/logout?token=logout-token-123">Log out</a>')
+          )
+        )
+      );
+
+      await expect(client.getLogoutToken()).resolves.toBe('logout-token-123');
+    });
+  });
+
+  describe('logout', () => {
+    it('uses tokenized GET logout route when logout token exists', async () => {
+      let capturedRequest;
+      server.use(
+        rest.get(`${BASE_URL}/user/logout`, (req, res, ctx) => {
+          capturedRequest = req;
+          return res(ctx.status(204));
+        })
+      );
+
+      await client.logout('abc123');
+      expect(capturedRequest.url.searchParams.get('token')).toBe('abc123');
+      expect(capturedRequest.url.searchParams.get('_format')).toBe('json');
+    });
+
+    it('falls back to CSRF-protected POST when GET logout fails', async () => {
+      let postCapturedRequest;
+      server.use(
+        rest.get(`${BASE_URL}/user/logout`, (req, res, ctx) => res(ctx.status(403))),
+        rest.get(`${BASE_URL}/session/token`, (req, res, ctx) => res(ctx.text('fallback-token'))),
+        rest.post(`${BASE_URL}/user/logout`, (req, res, ctx) => {
+          postCapturedRequest = req;
+          return res(ctx.status(204));
+        })
+      );
+
+      await client.logout('bad-token');
+      expect(postCapturedRequest.headers.get('x-csrf-token')).toBe('fallback-token');
+      expect(postCapturedRequest.url.searchParams.get('token')).toBe('bad-token');
+    });
+  });
 });

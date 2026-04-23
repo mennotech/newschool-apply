@@ -51,9 +51,22 @@
   - Microsoft
 - Uses Drupal session cookies instead of frontend token management.
 - Stores basic authenticated user data in `sessionStorage` for session restore.
-- On session restore, revalidates the session against Drupal before trusting the cached user.
-- If a stale Drupal session causes a login failure, frontend attempts a logout cleanup and retries once.
-- Logout clears local auth state even if the server-side logout request fails.
+- On session restore, revalidates the session against Drupal's `/user/login_status` endpoint before trusting the cached user.
+- If an authenticated backend session exists but no local auth state is present (e.g. user logged in via Drupal admin UI), the frontend **bootstraps a lightweight user object** from the backend session automatically.
+- If a stale Drupal session causes a login failure (403), frontend attempts a logout cleanup and retries once.
+- Logout sends a GET request to `/user/logout?_format=json&token={logoutToken}` with the logout token obtained at login time.
+- For backend-bootstrapped sessions (where no login response was received), the logout token is recovered at logout time via `getLogoutToken()`.
+- Local auth state is only cleared after a **successful** server-side logout. If the server logout fails, local state is preserved so the user can retry.
+- A CSRF token is fetched from `/session/token` and sent as `X-CSRF-Token` for all state-changing API requests.
+
+### Session Management API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/user/login?_format=json` | POST | Authenticate; returns `current_user` and `logout_token` |
+| `/user/logout?_format=json&token={token}` | GET | Invalidate Drupal session; requires `token` query param |
+| `/user/login_status?_format=json` | GET | Returns `1` (authenticated) or `0`; used for session verification |
+| `/session/token` | GET | Returns CSRF token for state-changing requests |
 
 ## Registration Features
 
@@ -80,6 +93,8 @@
 - Application list cards show:
   - Relative application numbering
   - Started date
+  - Student name (first/last)
+  - Applying for grade
   - Current status badge
 - Status labels currently supported:
   - Draft
@@ -88,8 +103,10 @@
   - Accepted
   - Not Accepted
 - Draft applications expose a Continue action.
+- Draft applications expose a Delete action with a confirmation dialog.
 - Non-draft applications expose a View action.
 - Continue action stores the selected application in frontend state and routes into the step flow.
+- Draft deletion shows a success notice and removes the draft from the list.
 - Leaving the dashboard clears any previously selected application from application state.
 
 ## Profile Features
@@ -172,12 +189,15 @@
 
 ## Step 4: Additional Support Declaration
 
-- Optional support disclosure step.
 - Collects long-form text in these areas:
   - Academic support
   - Diagnosis/assessments
   - Psychological support
-- Supports progressing without validation blocking.
+- Includes a required frontend confirmation checkbox stating that the page has been reviewed, even if no additional support details apply.
+- Performs client-side validation for required for support declaration
+- Shows inline field errors.
+- Shows a summary validation note below the navigation buttons when validation errors exist.
+- Review confirmation is persisted to Drupal as a dedicated application field.
 
 ## Step 5: Parent Questionnaire
 
@@ -205,13 +225,13 @@
 
 ## Draft Saving And Resume Features
 
-- New applications create a Drupal `application` entity after step 1 succeeds.
+- New applications create a Drupal `application` draft entity when the application flow is opened so step 1 blur autosave works immediately.
 - Draft applications are resumed by selecting a specific application from the dashboard.
 - Application page fetches the selected application by ID on load.
 - Drupal attributes are mapped back into the frontend step data model.
 - Saved data hydrates each step’s `initialData` on resume.
 - Draft hydration supports logout/login continuity because data is reloaded from Drupal.
-- Completed step checkmarks persist after logout/login because completion is recomputed from hydrated draft data.
+- Completed step checkmarks persist after logout/login because completion is recomputed from Drupal-persisted section review fields.
 - Autosave runs when a field loses focus on the supported steps.
 - Autosave patches only the changed application field back to Drupal.
 - Autosave supports both plain fields and Drupal `text_long` fields.
@@ -221,6 +241,8 @@
 - Each validated form step performs client-side validation before advancing.
 - Invalid fields are marked with `aria-invalid` and inline error messages.
 - Validation summary note appears below action buttons when a step has validation problems.
+- Additional Support Declaration requires explicit review confirmation so every step in the wizard is validated.
+- Step review/validation status for all pages is persisted in Drupal and rehydrated on resume.
 - Submission prevents incomplete required sections from being submitted.
 - Commitment step prevents submission without a signature.
 - General API errors are surfaced to users using styled alert banners.
@@ -248,6 +270,7 @@
   - GET
   - POST
   - PATCH
+  - DELETE
   - Binary file upload
 - Mutating requests fetch a fresh CSRF token before sending data.
 - Requests always include Drupal session cookies.
@@ -268,6 +291,7 @@
   - Creating applications
   - Fetching a draft by ID
   - Autosaving draft changes
+  - Deleting draft applications
   - Final submission patch
   - Document upload/create actions
 - Current application is tracked in state to support draft continuation.
@@ -299,5 +323,4 @@
 
 - Business rules remain backend-driven through Drupal.
 - Frontend currently renders and edits application data but does not independently decide permissions or workflow authority.
-- Additional support step is optional and does not block submission.
 - Application detail page currently displays uploaded document metadata rather than a full document management UI.
