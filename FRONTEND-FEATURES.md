@@ -1,0 +1,303 @@
+# Frontend Features
+
+## Overview
+
+- Frontend is a React single-page application for admissions and account management.
+- Routing is handled client-side with protected and public routes.
+- Authenticated users can log in, register, start a new application, resume draft applications, review submitted applications, and view their profile.
+- Frontend integrates with Drupal via JSON:API and Drupal session-based authentication.
+
+## Routing And Access Control
+
+- Public routes:
+  - `/` for the landing page.
+  - `/login` for account sign-in.
+  - `/register` for account creation.
+- Protected routes:
+  - `/dashboard` for application management.
+  - `/apply` and `/apply/:step` for the multi-step application flow.
+  - `/profile` for account details.
+  - `/application/:id` for viewing a submitted or existing application.
+- Protected route wrapper redirects unauthenticated users to the login screen.
+- App verifies the current Drupal-backed session on initial load.
+- App re-checks session validity when the browser tab becomes visible again.
+
+## Global Navigation
+
+- Header shows a public login CTA when the user is logged out.
+- Header shows authenticated navigation when the user is logged in.
+- Authenticated navigation includes:
+  - Dashboard
+  - New Application
+  - Profile
+  - Log out
+- Mobile navigation uses a hamburger menu and closes automatically on route changes.
+- Active navigation state is highlighted based on the current route.
+
+## Home Page
+
+- Landing page presents the application entry point.
+- Includes a primary CTA to start the application process by navigating to login.
+- Includes trust/assurance messaging about a secure application process.
+
+## Authentication Features
+
+- Email/username plus password login form.
+- Client-side validation for required login fields.
+- Error display for login failures.
+- Redirects authenticated users away from the login page to the dashboard.
+- Supports Drupal-managed social login entry points:
+  - Google
+  - Microsoft
+- Uses Drupal session cookies instead of frontend token management.
+- Stores basic authenticated user data in `sessionStorage` for session restore.
+- On session restore, revalidates the session against Drupal before trusting the cached user.
+- If a stale Drupal session causes a login failure, frontend attempts a logout cleanup and retries once.
+- Logout clears local auth state even if the server-side logout request fails.
+
+## Registration Features
+
+- Account registration form with:
+  - Email
+  - Password
+  - Password confirmation
+- Client-side validation includes:
+  - Required fields
+  - Email format validation
+  - Minimum password length
+  - Password confirmation match
+- Displays backend registration errors inline.
+- Shows a success state instructing the user to check email after account creation.
+- Redirects authenticated users away from registration to the dashboard.
+
+## Dashboard Features
+
+- Personalized welcome message using the authenticated user name when available.
+- Fetches the user’s applications from Drupal.
+- Loading state while application data is being fetched.
+- Empty state for users with no applications yet.
+- New Application CTA from the dashboard.
+- Application list cards show:
+  - Relative application numbering
+  - Started date
+  - Current status badge
+- Status labels currently supported:
+  - Draft
+  - Submitted
+  - Under Review
+  - Accepted
+  - Not Accepted
+- Draft applications expose a Continue action.
+- Non-draft applications expose a View action.
+- Continue action stores the selected application in frontend state and routes into the step flow.
+- Leaving the dashboard clears any previously selected application from application state.
+
+## Profile Features
+
+- Profile page displays currently known account data.
+- Shows username and email when available.
+- Falls back gracefully if profile information is missing.
+
+## Multi-Step Application Flow
+
+- Application process is implemented as a six-step wizard:
+  - Student Info
+  - Health Information
+  - Parent / Guardian Information
+  - Additional Support
+  - Questionnaire
+  - Commitment
+- Each step is route-addressable through `/apply/:step`.
+- Step progress is rendered at the top of the page.
+- Progress stepper displays:
+  - Current step
+  - Completed step checkmarks
+  - Locked/unlocked navigation state
+- User can always access step 1.
+- Once step 1 is complete, top step buttons become available for jump-around navigation.
+- Completed step indicators are derived from saved form data, not just navigation history.
+
+## Step 1: Student Information
+
+- Collects detailed student information including:
+  - Legal first, middle, and last name
+  - Preferred name
+  - Gender
+  - Date of birth
+  - Current grade
+  - Applying-for grade
+  - Primary/home phone number
+  - Physical address
+  - Mailing address difference flag
+  - Citizenship status
+  - Previous Manitoba school attendance flag
+  - Church attending
+  - Denomination
+- Displays admissions guidance notes above the form.
+- Performs client-side validation for required fields.
+- Shows inline field errors.
+- Shows a summary validation note below the Next button when validation errors exist.
+- Creates the related Drupal student profile when starting a brand new application.
+- Skips profile creation when editing/resuming an existing draft.
+
+## Step 2: Health Information
+
+- Collects health and emergency information including:
+  - Manitoba health number segments
+  - Emergency contact name
+  - Emergency contact phone
+  - Allergies
+  - Frequently used medications
+  - Medical restrictions
+- Performs client-side validation for required health fields.
+- Shows inline field errors.
+- Shows a summary validation note below the navigation buttons when validation errors exist.
+
+## Step 3: Parent / Guardian Information
+
+- Collects parent/guardian information for both father and mother fields including:
+  - Names
+  - Address-same-as-student flags
+  - Workplace
+  - Work number
+  - Cell number
+  - Email
+- Collects household relationship details including:
+  - Parents’ relationship status
+  - Who the student lives with
+  - Custody description
+- Performs client-side validation for required relationship/custody fields.
+- Shows inline field errors.
+- Shows a summary validation note below the navigation buttons when validation errors exist.
+
+## Step 4: Additional Support Declaration
+
+- Optional support disclosure step.
+- Collects long-form text in these areas:
+  - Academic support
+  - Diagnosis/assessments
+  - Psychological support
+- Supports progressing without validation blocking.
+
+## Step 5: Parent Questionnaire
+
+- Collects questionnaire responses including:
+  - Parent name
+  - Christian testimony
+  - Reason for interest in the school
+- Performs client-side validation for required questionnaire responses.
+- Shows inline field errors.
+- Shows a summary validation note below the navigation buttons when validation errors exist.
+
+## Step 6: Commitment And Submission
+
+- Displays statement-of-commitment content for review.
+- Includes signature capture using an HTML canvas signature pad.
+- Allows clearing and re-drawing the signature.
+- Requires a signature before submission.
+- Blocks submission if required earlier sections are incomplete.
+- Shows a styled in-app warning modal listing incomplete required sections before submit.
+- On successful submission:
+  - Sends all accumulated application data in one PATCH request.
+  - Marks the application as submitted.
+  - Records submission timestamp.
+  - Shows a success confirmation state.
+
+## Draft Saving And Resume Features
+
+- New applications create a Drupal `application` entity after step 1 succeeds.
+- Draft applications are resumed by selecting a specific application from the dashboard.
+- Application page fetches the selected application by ID on load.
+- Drupal attributes are mapped back into the frontend step data model.
+- Saved data hydrates each step’s `initialData` on resume.
+- Draft hydration supports logout/login continuity because data is reloaded from Drupal.
+- Completed step checkmarks persist after logout/login because completion is recomputed from hydrated draft data.
+- Autosave runs when a field loses focus on the supported steps.
+- Autosave patches only the changed application field back to Drupal.
+- Autosave supports both plain fields and Drupal `text_long` fields.
+
+## Validation And Error Handling
+
+- Each validated form step performs client-side validation before advancing.
+- Invalid fields are marked with `aria-invalid` and inline error messages.
+- Validation summary note appears below action buttons when a step has validation problems.
+- Submission prevents incomplete required sections from being submitted.
+- Commitment step prevents submission without a signature.
+- General API errors are surfaced to users using styled alert banners.
+- Loading states are shown during data fetches and long-running actions.
+
+## Application Detail View
+
+- Dedicated detail page for an existing application.
+- Fetches the application entity by ID.
+- Fetches included student profile data.
+- Separately fetches documents linked to the application.
+- Displays:
+  - Status badge
+  - Started date
+  - Student information summary
+  - Uploaded document titles
+  - Submission date when available
+- Includes a back-to-dashboard action.
+- Shows loading and error states.
+
+## Drupal API Integration
+
+- Centralized API client wraps Drupal requests.
+- Supports:
+  - GET
+  - POST
+  - PATCH
+  - Binary file upload
+- Mutating requests fetch a fresh CSRF token before sending data.
+- Requests always include Drupal session cookies.
+- JSON:API errors are parsed into readable frontend error messages.
+- Login/logout flows use Drupal endpoints while entity reads/writes use JSON:API.
+
+## Frontend State Management
+
+- Redux Toolkit is used for auth state and application state.
+- Auth slice handles:
+  - Login
+  - Registration
+  - Session restore
+  - Session verification
+  - Logout
+- Application slice handles:
+  - Fetching application lists
+  - Creating applications
+  - Fetching a draft by ID
+  - Autosaving draft changes
+  - Final submission patch
+  - Document upload/create actions
+- Current application is tracked in state to support draft continuation.
+
+## Accessibility And UX Features
+
+- Semantic headings, forms, and labels are used throughout the UI.
+- Protected flows redirect unauthenticated users predictably.
+- Loading spinners are paired with text labels.
+- Inline errors use accessible relationships via `aria-describedby` where implemented.
+- Stepper buttons expose accessible labels for current and completed states.
+- Modal warning uses `role="dialog"` and `aria-modal="true"`.
+- Forms support keyboard submission and button-based step navigation.
+
+## Testing Coverage Present In Frontend
+
+- Jest and React Testing Library coverage exists for core frontend behavior.
+- Tests currently cover areas including:
+  - API client behavior
+  - Protected route behavior
+  - Progress stepper rendering and navigation state
+  - Login page behavior
+  - Student information step validation/submission
+  - Application page flow and draft hydration
+  - Commitment step submission safeguards
+- MSW is used to mock backend API behavior during frontend tests.
+
+## Current Frontend Boundaries
+
+- Business rules remain backend-driven through Drupal.
+- Frontend currently renders and edits application data but does not independently decide permissions or workflow authority.
+- Additional support step is optional and does not block submission.
+- Application detail page currently displays uploaded document metadata rather than a full document management UI.
