@@ -44,14 +44,18 @@ function StudentInfoStep({ onComplete, initialData = {}, applicationId, isResume
   const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e) {
-    setFields((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (e.target.type === 'radio' || e.target.tagName === 'SELECT') {
-      onFieldBlur && onFieldBlur(e.target.name, e.target.value);
-    }
+    const { name, value, type, tagName } = e.target;
+    setFields((prev) => {
+      const next = { ...prev, [name]: value };
+      if (type === 'radio' || tagName === 'SELECT') {
+        onFieldBlur && onFieldBlur(name, value, next);
+      }
+      return next;
+    });
   }
 
   function handleBlur(e) {
-    onFieldBlur && onFieldBlur(e.target.name, e.target.value);
+    onFieldBlur && onFieldBlur(e.target.name, e.target.value, fields);
   }
 
   function validate() {
@@ -222,6 +226,11 @@ function StudentInfoStep({ onComplete, initialData = {}, applicationId, isResume
         <h3 className="form-section-title" style={{ marginTop: '1.25rem' }}>Physical Address</h3>
         <AddressChunk
           fieldPrefix="physical_address"
+          fieldNameOverrides={{
+            city: 'physical_city',
+            state_province: 'physical_state_province',
+            postal_zip: 'physical_postal_zip',
+          }}
           values={fields}
           errors={errors}
           onChange={handleChange}

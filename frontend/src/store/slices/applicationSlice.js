@@ -107,8 +107,12 @@ export const fetchApplicationById = createAsyncThunk(
   'application/fetchApplicationById',
   async (applicationId, { rejectWithValue }) => {
     try {
-      const result = await get(`/jsonapi/node/application/${applicationId}`);
-      return result.data;
+      const include = 'field_physical_address,field_mailing_address,field_father_address,field_mother_address';
+      const result = await get(`/jsonapi/node/application/${applicationId}?include=${include}`);
+      return {
+        ...result.data,
+        _included: result.included || [],
+      };
     } catch (err) {
       return rejectWithValue(err.message || 'Failed to fetch application');
     }

@@ -5,6 +5,8 @@ label: Parent
 weight: 2
 is_admin: false
 permissions:
+  - 'create address content'
+  - 'edit own address content'
   - 'create student_profile content'
   - 'edit own student_profile content'
   - 'delete own student_profile content'

@@ -79,10 +79,10 @@ describe('ApplicationPage', () => {
       await userEvent.type(screen.getByLabelText(/date of birth/i), '2010-04-23');
       await userEvent.type(screen.getByLabelText(/applying for grade/i), 'Grade 7');
       await userEvent.type(screen.getByLabelText(/primary.*phone/i), '2045551234');
-      await userEvent.type(screen.getByLabelText(/^street address$/i), '123 Main St');
-      await userEvent.type(screen.getByLabelText(/city/i), 'Steinbach');
-      await userEvent.type(screen.getByLabelText(/province/i), 'MB');
-      await userEvent.type(screen.getByLabelText(/postal/i), 'R5G 1A1');
+      await userEvent.type(document.querySelector('input[name="physical_address_line_1"]'), '123 Main St');
+      await userEvent.type(document.querySelector('input[name="physical_city"]'), 'Steinbach');
+      await userEvent.type(document.querySelector('input[name="physical_state_province"]'), 'MB');
+      await userEvent.type(document.querySelector('input[name="physical_postal_zip"]'), 'R5G 1A1');
       // radio buttons
       await userEvent.click(screen.getByRole('radio', { name: /^male$/i }));
       await userEvent.click(screen.getAllByRole('radio', { name: /^no$/i })[0]);
@@ -102,10 +102,10 @@ describe('ApplicationPage', () => {
       await userEvent.type(screen.getByLabelText(/date of birth/i), '2010-04-23');
       await userEvent.type(screen.getByLabelText(/applying for grade/i), 'Grade 7');
       await userEvent.type(screen.getByLabelText(/primary.*phone/i), '2045551234');
-      await userEvent.type(screen.getByLabelText(/^street address$/i), '123 Main St');
-      await userEvent.type(screen.getByLabelText(/city/i), 'Steinbach');
-      await userEvent.type(screen.getByLabelText(/province/i), 'MB');
-      await userEvent.type(screen.getByLabelText(/postal/i), 'R5G 1A1');
+      await userEvent.type(document.querySelector('input[name="physical_address_line_1"]'), '123 Main St');
+      await userEvent.type(document.querySelector('input[name="physical_city"]'), 'Steinbach');
+      await userEvent.type(document.querySelector('input[name="physical_state_province"]'), 'MB');
+      await userEvent.type(document.querySelector('input[name="physical_postal_zip"]'), 'R5G 1A1');
       await userEvent.click(screen.getByRole('radio', { name: /^male$/i }));
       await userEvent.click(screen.getAllByRole('radio', { name: /^no$/i })[0]);
       await userEvent.click(screen.getAllByRole('radio', { name: /^no$/i })[1]);
@@ -201,6 +201,83 @@ describe('ApplicationPage', () => {
       await waitFor(() => {
         expect(created).toBe(true);
         expect(patchedBody?.data?.attributes?.field_student_first_name).toBe('Alice');
+      });
+    });
+
+    it('creates address nodes and links them on student info submit', async () => {
+      const createdAddresses = [];
+      let patchedBody;
+
+      server.use(
+        rest.post('http://localhost:8080/jsonapi/node/address', async (req, res, ctx) => {
+          const body = await req.json();
+          createdAddresses.push(body);
+          return res(
+            ctx.status(201),
+            ctx.json({
+              data: {
+                id: `address-${createdAddresses.length}`,
+                type: 'node--address',
+                attributes: body.data.attributes,
+              },
+            })
+          );
+        }),
+        rest.patch('http://localhost:8080/jsonapi/node/application/:id', async (req, res, ctx) => {
+          patchedBody = await req.json();
+          return res(
+            ctx.status(200),
+            ctx.json({
+              data: {
+                id: req.params.id,
+                type: 'node--application',
+                attributes: patchedBody.data.attributes || {},
+                relationships: patchedBody.data.relationships || {},
+              },
+            })
+          );
+        })
+      );
+
+      renderApp({ initialPath: '/apply/student-info' });
+
+      await screen.findByLabelText(/^first name$/i);
+
+      await userEvent.type(screen.getByLabelText(/^first name$/i), 'Alice');
+      await userEvent.type(screen.getByLabelText(/^last name$/i), 'Smith');
+      await userEvent.type(screen.getByLabelText(/date of birth/i), '2010-01-15');
+      await userEvent.type(screen.getByLabelText(/applying for grade/i), 'Grade 7');
+      await userEvent.type(screen.getByLabelText(/primary.*phone/i), '2045551234');
+      await userEvent.type(document.querySelector('input[name="physical_address_line_1"]'), '1 Main St');
+      await userEvent.type(document.querySelector('input[name="physical_city"]'), 'Steinbach');
+      await userEvent.type(document.querySelector('input[name="physical_state_province"]'), 'MB');
+      await userEvent.type(document.querySelector('input[name="physical_postal_zip"]'), 'R5G 1A1');
+      await userEvent.click(screen.getByRole('radio', { name: /^female$/i }));
+      await userEvent.click(screen.getByRole('radio', { name: /canadian citizen/i }));
+      await userEvent.click(screen.getAllByRole('radio', { name: /^yes$/i })[0]);
+
+      const mailingLine1Input = document.querySelector('input[name="mailing_address_line_1"]');
+      const mailingCityInput = document.querySelector('input[name="mailing_address_city"]');
+      const mailingStateInput = document.querySelector('input[name="mailing_address_state_province"]');
+      const mailingPostalInput = document.querySelector('input[name="mailing_address_postal_zip"]');
+      expect(mailingLine1Input).toBeTruthy();
+      expect(mailingCityInput).toBeTruthy();
+      expect(mailingStateInput).toBeTruthy();
+      expect(mailingPostalInput).toBeTruthy();
+      await userEvent.type(mailingLine1Input, '55 Mailing Rd');
+      await userEvent.type(mailingCityInput, 'Winnipeg');
+      await userEvent.type(mailingStateInput, 'MB');
+      await userEvent.type(mailingPostalInput, 'R3C 0A1');
+      await userEvent.click(screen.getAllByRole('radio', { name: /^no$/i })[1]);
+      await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      await waitFor(() => {
+        expect(createdAddresses.length).toBeGreaterThanOrEqual(2);
+        const physicalId = patchedBody?.data?.relationships?.field_physical_address?.data?.id;
+        const mailingId = patchedBody?.data?.relationships?.field_mailing_address?.data?.id;
+        expect(physicalId).toBeTruthy();
+        expect(mailingId).toBeTruthy();
+        expect(physicalId).not.toBe(mailingId);
       });
     });
 
@@ -351,6 +428,77 @@ describe('ApplicationPage', () => {
       const studentStep = screen.getByRole('button', { name: /student info - completed/i });
       expect(studentStep).toBeInTheDocument();
       expect(studentStep).not.toBeDisabled();
+    });
+
+    it('creates guardian address nodes and links them on parent info submit', async () => {
+      const createdAddresses = [];
+      let patchedBody;
+
+      server.use(
+        rest.post('http://localhost:8080/jsonapi/node/address', async (req, res, ctx) => {
+          const body = await req.json();
+          createdAddresses.push(body);
+          return res(
+            ctx.status(201),
+            ctx.json({
+              data: {
+                id: `guardian-address-${createdAddresses.length}`,
+                type: 'node--address',
+                attributes: body.data.attributes,
+              },
+            })
+          );
+        }),
+        rest.patch('http://localhost:8080/jsonapi/node/application/:id', async (req, res, ctx) => {
+          patchedBody = await req.json();
+          return res(
+            ctx.status(200),
+            ctx.json({
+              data: {
+                id: req.params.id,
+                type: 'node--application',
+                attributes: patchedBody.data.attributes || {},
+                relationships: patchedBody.data.relationships || {},
+              },
+            })
+          );
+        })
+      );
+
+      renderApp({
+        initialPath: '/apply/parent-info',
+        preloadedApplication: {
+          currentApplication: { id: 'draft-app-id', type: 'node--application', attributes: { field_status: 'pending' } },
+        },
+      });
+
+      await screen.findByRole('heading', { name: /parent \/ guardian information/i });
+
+      await userEvent.click(screen.getByRole('radio', { name: /^divorced$/i }));
+      await userEvent.click(screen.getAllByRole('radio', { name: /^mother$/i })[0]);
+      await userEvent.click(screen.getByRole('radio', { name: /^joint$/i }));
+
+      const noRadios = screen.getAllByRole('radio', { name: /^no$/i });
+      await userEvent.click(noRadios[0]);
+      await userEvent.click(noRadios[1]);
+
+      await userEvent.type(document.querySelector('input[name="father_address_line_1"]'), '10 Father Rd');
+      await userEvent.type(document.querySelector('input[name="father_address_city"]'), 'Steinbach');
+      await userEvent.type(document.querySelector('input[name="father_address_state_province"]'), 'MB');
+      await userEvent.type(document.querySelector('input[name="father_address_postal_zip"]'), 'R5G 1A1');
+
+      await userEvent.type(document.querySelector('input[name="mother_address_line_1"]'), '20 Mother Rd');
+      await userEvent.type(document.querySelector('input[name="mother_address_city"]'), 'Winnipeg');
+      await userEvent.type(document.querySelector('input[name="mother_address_state_province"]'), 'MB');
+      await userEvent.type(document.querySelector('input[name="mother_address_postal_zip"]'), 'R3C 0A1');
+
+      await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      await waitFor(() => {
+        expect(createdAddresses).toHaveLength(2);
+        expect(patchedBody?.data?.relationships?.field_father_address?.data?.id).toBe('guardian-address-1');
+        expect(patchedBody?.data?.relationships?.field_mother_address?.data?.id).toBe('guardian-address-2');
+      });
     });
   });
 });

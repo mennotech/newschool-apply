@@ -73,6 +73,21 @@ function ParentInfoStep({ onComplete, onBack, initialData = {}, onFieldBlur }) {
     if (!fields.parents_relationship_status) errs.parents_relationship_status = 'Please select a relationship status.';
     if (!fields.student_lives_with) errs.student_lives_with = 'Please indicate who the student lives with.';
     if (!fields.custody_description) errs.custody_description = 'Please select a custody description.';
+
+    if (fields.father_address_same_as_student === 'no') {
+      if (!fields.father_address_line_1.trim()) errs.father_address_line_1 = 'Street address is required.';
+      if (!fields.father_address_city.trim()) errs.father_address_city = 'City is required.';
+      if (!fields.father_address_state_province.trim()) errs.father_address_state_province = 'Province is required.';
+      if (!fields.father_address_postal_zip.trim()) errs.father_address_postal_zip = 'Postal code is required.';
+    }
+
+    if (fields.mother_address_same_as_student === 'no') {
+      if (!fields.mother_address_line_1.trim()) errs.mother_address_line_1 = 'Street address is required.';
+      if (!fields.mother_address_city.trim()) errs.mother_address_city = 'City is required.';
+      if (!fields.mother_address_state_province.trim()) errs.mother_address_state_province = 'Province is required.';
+      if (!fields.mother_address_postal_zip.trim()) errs.mother_address_postal_zip = 'Postal code is required.';
+    }
+
     return errs;
   }
 

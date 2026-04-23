@@ -68,6 +68,36 @@ export const handlers = [
     );
   }),
 
+  // Create address node
+  rest.post(`${BASE_URL}/jsonapi/node/address`, async (req, res, ctx) => {
+    const body = await req.json();
+    return res(
+      ctx.status(201),
+      ctx.json({
+        data: {
+          id: 'mock-address-id',
+          type: 'node--address',
+          attributes: body.data.attributes,
+        },
+      })
+    );
+  }),
+
+  // Update address node
+  rest.patch(`${BASE_URL}/jsonapi/node/address/:id`, async (req, res, ctx) => {
+    const body = await req.json();
+    return res(
+      ctx.status(200),
+      ctx.json({
+        data: {
+          id: req.params.id,
+          type: 'node--address',
+          attributes: body.data.attributes,
+        },
+      })
+    );
+  }),
+
   // Submit application (PATCH)
   rest.patch(`${BASE_URL}/jsonapi/node/application/:id`, async (req, res, ctx) => {
     const body = await req.json();

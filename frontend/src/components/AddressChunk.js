@@ -17,19 +17,24 @@ import PropTypes from 'prop-types';
 function AddressChunk({
   title,
   fieldPrefix,
+  fieldNameOverrides = {},
   values = {},
   errors = {},
   onChange,
   onBlur,
   required = true,
 }) {
+  function getFieldName(fieldKey) {
+    return fieldNameOverrides[fieldKey] || `${fieldPrefix}_${fieldKey}`;
+  }
+
   // Extract address values with fallback defaults
   const address = {
-    line_1: values[`${fieldPrefix}_line_1`] || '',
-    line_2: values[`${fieldPrefix}_line_2`] || '',
-    city: values[`${fieldPrefix}_city`] || '',
-    state_province: values[`${fieldPrefix}_state_province`] || '',
-    postal_zip: values[`${fieldPrefix}_postal_zip`] || '',
+    line_1: values[getFieldName('line_1')] || '',
+    line_2: values[getFieldName('line_2')] || '',
+    city: values[getFieldName('city')] || '',
+    state_province: values[getFieldName('state_province')] || '',
+    postal_zip: values[getFieldName('postal_zip')] || '',
   };
 
   function handleChange(e) {
@@ -45,7 +50,7 @@ function AddressChunk({
   }
 
   function textField(fieldKey, label, inputProps = {}) {
-    const fieldName = `${fieldPrefix}_${fieldKey}`;
+    const fieldName = getFieldName(fieldKey);
     const error = errors[fieldName];
     const value = address[fieldKey];
 
@@ -104,6 +109,7 @@ function AddressChunk({
 AddressChunk.propTypes = {
   title: PropTypes.string,
   fieldPrefix: PropTypes.string.isRequired,
+  fieldNameOverrides: PropTypes.object,
   values: PropTypes.object,
   errors: PropTypes.object,
   onChange: PropTypes.func,

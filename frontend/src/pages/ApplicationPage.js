@@ -9,6 +9,7 @@ import AdditionalSupportStep from '../components/steps/AdditionalSupportStep';
 import QuestionnaireStep from '../components/steps/QuestionnaireStep';
 import CommitmentStep from '../components/steps/CommitmentStep';
 import { createApplication, fetchApplicationById, patchDraftApplication } from '../store/slices/applicationSlice';
+import { post, patch as patchRequest } from '../api/drupalClient';
 
 const STEPS = ['student-info', 'health-info', 'parent-info', 'additional-support', 'questionnaire', 'commitment'];
 
@@ -69,11 +70,6 @@ const FORM_TO_DRUPAL = {
   student_current_grade: 'field_student_current_grade',
   student_applying_for_grade: 'field_student_applying_for_grade',
   primary_home_phone: 'field_primary_home_phone',
-  physical_address_line_1: 'field_physical_address_line_1',
-  physical_address_line_2: 'field_physical_address_line_2',
-  physical_city: 'field_physical_city',
-  physical_state_province: 'field_physical_state_province',
-  physical_postal_zip: 'field_physical_postal_zip',
   mailing_address_differs: 'field_mailing_address_differs',
   citizenship_status: 'field_citizenship_status',
   attended_mb_school_before: 'field_attended_mb_school_before',
@@ -119,6 +115,15 @@ const TEXT_LONG_FIELDS = new Set([
   'christian_testimony', 'school_interest_reason',
 ]);
 
+const MAILING_ADDRESS_FIELDS = new Set([
+  'mailing_address_differs',
+  'mailing_address_line_1',
+  'mailing_address_line_2',
+  'mailing_address_city',
+  'mailing_address_state_province',
+  'mailing_address_postal_zip',
+]);
+
 // Extract plain string from a Drupal attribute (handles text_long objects)
 function plain(v) {
   if (v === null || v === undefined) return '';
@@ -126,8 +131,45 @@ function plain(v) {
   return String(v);
 }
 
+function mapAddressFromResource(resource) {
+  if (!resource?.attributes) {
+    return {
+      line_1: '',
+      line_2: '',
+      city: '',
+      state_province: '',
+      postal_zip: '',
+    };
+  }
+
+  return {
+    line_1: plain(resource.attributes.field_address_line_1),
+    line_2: plain(resource.attributes.field_address_line_2),
+    city: plain(resource.attributes.field_address_city),
+    state_province: plain(resource.attributes.field_address_state_province),
+    postal_zip: plain(resource.attributes.field_address_postal_zip),
+  };
+}
+
+function findIncludedAddress(applicationData, relationshipKey) {
+  const rel = applicationData?.relationships?.[relationshipKey]?.data;
+  if (!rel?.id || !Array.isArray(applicationData?._included)) return null;
+
+  return applicationData._included.find((item) => item.type === 'node--address' && item.id === rel.id) || null;
+}
+
 // Map Drupal application attributes back to the form's stepData shape
-function mapDrupalToStepData(attrs) {
+function mapDrupalToStepData(applicationData) {
+  const attrs = applicationData?.attributes || {};
+  const physicalAddressResource = findIncludedAddress(applicationData, 'field_physical_address');
+  const mailingAddressResource = findIncludedAddress(applicationData, 'field_mailing_address');
+  const fatherAddressResource = findIncludedAddress(applicationData, 'field_father_address');
+  const motherAddressResource = findIncludedAddress(applicationData, 'field_mother_address');
+  const physicalAddress = mapAddressFromResource(physicalAddressResource);
+  const mailingAddress = mapAddressFromResource(mailingAddressResource);
+  const fatherAddress = mapAddressFromResource(fatherAddressResource);
+  const motherAddress = mapAddressFromResource(motherAddressResource);
+
   const section1Reviewed = plain(attrs.field_section_1_reviewed) === 'yes';
   const section2Reviewed = plain(attrs.field_section_2_reviewed) === 'yes';
   const section3Reviewed = plain(attrs.field_section_3_reviewed) === 'yes';
@@ -146,12 +188,19 @@ function mapDrupalToStepData(attrs) {
       student_current_grade: plain(attrs.field_student_current_grade),
       student_applying_for_grade: plain(attrs.field_student_applying_for_grade),
       primary_home_phone: plain(attrs.field_primary_home_phone),
-      physical_address_line_1: plain(attrs.field_physical_address_line_1),
-      physical_address_line_2: plain(attrs.field_physical_address_line_2),
-      physical_city: plain(attrs.field_physical_city),
-      physical_state_province: plain(attrs.field_physical_state_province),
-      physical_postal_zip: plain(attrs.field_physical_postal_zip),
+      physical_address_line_1: physicalAddress.line_1 || plain(attrs.field_physical_address_line_1),
+      physical_address_line_2: physicalAddress.line_2 || plain(attrs.field_physical_address_line_2),
+      physical_city: physicalAddress.city || plain(attrs.field_physical_city),
+      physical_state_province: physicalAddress.state_province || plain(attrs.field_physical_state_province),
+      physical_postal_zip: physicalAddress.postal_zip || plain(attrs.field_physical_postal_zip),
+      physical_address_node_id: physicalAddressResource?.id || '',
       mailing_address_differs: plain(attrs.field_mailing_address_differs),
+      mailing_address_line_1: mailingAddress.line_1 || plain(attrs.field_mailing_address_line_1),
+      mailing_address_line_2: mailingAddress.line_2 || plain(attrs.field_mailing_address_line_2),
+      mailing_address_city: mailingAddress.city || plain(attrs.field_mailing_address_city),
+      mailing_address_state_province: mailingAddress.state_province || plain(attrs.field_mailing_address_state_province),
+      mailing_address_postal_zip: mailingAddress.postal_zip || plain(attrs.field_mailing_address_postal_zip),
+      mailing_address_node_id: mailingAddressResource?.id || '',
       citizenship_status: plain(attrs.field_citizenship_status),
       attended_mb_school_before: plain(attrs.field_attended_mb_school_before),
       church_attending: plain(attrs.field_church_attending),
@@ -170,6 +219,12 @@ function mapDrupalToStepData(attrs) {
       father_surname: plain(attrs.field_father_surname),
       father_given_name: plain(attrs.field_father_given_name),
       father_address_same_as_student: plain(attrs.field_father_address_same_a45c44),
+      father_address_line_1: fatherAddress.line_1,
+      father_address_line_2: fatherAddress.line_2,
+      father_address_city: fatherAddress.city,
+      father_address_state_province: fatherAddress.state_province,
+      father_address_postal_zip: fatherAddress.postal_zip,
+      father_address_node_id: fatherAddressResource?.id || '',
       father_workplace: plain(attrs.field_father_workplace),
       father_work_number: plain(attrs.field_father_work_number),
       father_cell_number: plain(attrs.field_father_cell_number),
@@ -177,6 +232,12 @@ function mapDrupalToStepData(attrs) {
       mother_surname: plain(attrs.field_mother_surname),
       mother_given_name: plain(attrs.field_mother_given_name),
       mother_address_same_as_student: plain(attrs.field_mother_address_same_afa04c),
+      mother_address_line_1: motherAddress.line_1,
+      mother_address_line_2: motherAddress.line_2,
+      mother_address_city: motherAddress.city,
+      mother_address_state_province: motherAddress.state_province,
+      mother_address_postal_zip: motherAddress.postal_zip,
+      mother_address_node_id: motherAddressResource?.id || '',
       mother_workplace: plain(attrs.field_mother_workplace),
       mother_work_number: plain(attrs.field_mother_work_number),
       mother_cell_number: plain(attrs.field_mother_cell_number),
@@ -255,7 +316,7 @@ function ApplicationPage() {
     if (resumeIdRef.current) {
       dispatch(fetchApplicationById(resumeIdRef.current)).then((action) => {
         if (fetchApplicationById.fulfilled.match(action)) {
-          setStepData(mapDrupalToStepData(action.payload.attributes || {}));
+          setStepData(mapDrupalToStepData(action.payload || {}));
         }
         setHydrating(false);
       });
@@ -312,9 +373,127 @@ function ApplicationPage() {
     }
   }
 
+  async function upsertAddressNode(existingId, address, title) {
+    const payload = {
+      data: {
+        type: 'node--address',
+        ...(existingId ? { id: existingId } : {}),
+        attributes: {
+          title,
+          field_address_line_1: address.line_1,
+          field_address_line_2: address.line_2 || '',
+          field_address_city: address.city,
+          field_address_state_province: address.state_province,
+          field_address_postal_zip: address.postal_zip,
+        },
+      },
+    };
+
+    const result = existingId
+      ? await patchRequest(`/jsonapi/node/address/${existingId}`, payload)
+      : await post('/jsonapi/node/address', payload);
+
+    return result.data?.id;
+  }
+
   // Autosave a single field to the draft application whenever a field loses focus
-  async function handleAutosave(fieldKey, value) {
+  async function handleAutosave(fieldKey, value, formSnapshot = null) {
     if (value === undefined) return;
+
+    if (MAILING_ADDRESS_FIELDS.has(fieldKey)) {
+      let applicationId;
+      try {
+        applicationId = await ensureApplicationId();
+      } catch (err) {
+        setStepError(err.message || 'Failed to start application. Please try again.');
+        return;
+      }
+
+      const currentStudentInfo = {
+        ...stepData.studentInfo,
+        ...(formSnapshot || {}),
+        [fieldKey]: value,
+      };
+
+      try {
+        if (currentStudentInfo.mailing_address_differs === 'yes') {
+          const hasRequiredMailingFields = [
+            currentStudentInfo.mailing_address_line_1,
+            currentStudentInfo.mailing_address_city,
+            currentStudentInfo.mailing_address_state_province,
+            currentStudentInfo.mailing_address_postal_zip,
+          ].every((fieldValue) => Boolean(String(fieldValue || '').trim()));
+
+          if (!hasRequiredMailingFields) {
+            dispatch(
+              patchDraftApplication({
+                applicationId,
+                attributes: { field_mailing_address_differs: 'yes' },
+              })
+            );
+            return;
+          }
+
+          const mailingAddressId = await upsertAddressNode(
+            currentStudentInfo.mailing_address_node_id || null,
+            {
+              line_1: currentStudentInfo.mailing_address_line_1,
+              line_2: currentStudentInfo.mailing_address_line_2,
+              city: currentStudentInfo.mailing_address_city,
+              state_province: currentStudentInfo.mailing_address_state_province,
+              postal_zip: currentStudentInfo.mailing_address_postal_zip,
+            },
+            `Mailing Address - ${currentStudentInfo.student_first_name || ''} ${currentStudentInfo.student_last_name || ''}`.trim()
+          );
+
+          await dispatch(
+            patchDraftApplication({
+              applicationId,
+              attributes: { field_mailing_address_differs: 'yes' },
+              relationships: {
+                field_mailing_address: {
+                  data: mailingAddressId ? { type: 'node--address', id: mailingAddressId } : null,
+                },
+              },
+            })
+          ).unwrap();
+
+          setStepData((prev) => ({
+            ...prev,
+            studentInfo: {
+              ...prev.studentInfo,
+              ...currentStudentInfo,
+              mailing_address_node_id: mailingAddressId || '',
+            },
+          }));
+        } else if (currentStudentInfo.mailing_address_differs === 'no') {
+          await dispatch(
+            patchDraftApplication({
+              applicationId,
+              attributes: { field_mailing_address_differs: 'no' },
+              relationships: {
+                field_mailing_address: {
+                  data: null,
+                },
+              },
+            })
+          ).unwrap();
+
+          setStepData((prev) => ({
+            ...prev,
+            studentInfo: {
+              ...prev.studentInfo,
+              ...currentStudentInfo,
+              mailing_address_node_id: '',
+            },
+          }));
+        }
+      } catch (err) {
+        setStepError(err.message || 'Failed to autosave mailing address. Please try again.');
+      }
+      return;
+    }
+
     const drupalField = FORM_TO_DRUPAL[fieldKey];
     if (!drupalField) return;
 
@@ -333,11 +512,6 @@ function ApplicationPage() {
   }
 
   async function handleStudentInfoComplete({ profile, formData }) {
-    setStepData((prev) => ({
-      ...prev,
-      studentInfo: formData,
-      validation: { ...prev.validation, section_1_reviewed: true },
-    }));
     setStepError(null);
     let applicationId;
     try {
@@ -347,22 +521,75 @@ function ApplicationPage() {
       return;
     }
 
-    const relationships = profile?.id
-      ? {
-        field_student_profile: {
-          data: { type: 'node--student_profile', id: profile.id },
-        },
-      }
-      : undefined;
+    let physicalAddressId = formData.physical_address_node_id || stepData.studentInfo.physical_address_node_id || null;
+    let mailingAddressId = formData.mailing_address_node_id || stepData.studentInfo.mailing_address_node_id || null;
 
-    dispatch(
-      patchDraftApplication({
-        applicationId,
-        attributes: { field_section_1_reviewed: 'yes' },
-        relationships,
-      })
-    );
-    goToStep(1);
+    try {
+      physicalAddressId = await upsertAddressNode(
+        physicalAddressId,
+        {
+          line_1: formData.physical_address_line_1,
+          line_2: formData.physical_address_line_2,
+          city: formData.physical_city,
+          state_province: formData.physical_state_province,
+          postal_zip: formData.physical_postal_zip,
+        },
+        `Physical Address - ${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim()
+      );
+
+      if (formData.mailing_address_differs === 'yes') {
+        mailingAddressId = await upsertAddressNode(
+          mailingAddressId,
+          {
+            line_1: formData.mailing_address_line_1,
+            line_2: formData.mailing_address_line_2,
+            city: formData.mailing_address_city,
+            state_province: formData.mailing_address_state_province,
+            postal_zip: formData.mailing_address_postal_zip,
+          },
+          `Mailing Address - ${formData.student_first_name || ''} ${formData.student_last_name || ''}`.trim()
+        );
+      } else {
+        mailingAddressId = null;
+      }
+      const relationships = {
+        ...(profile?.id
+          ? {
+            field_student_profile: {
+              data: { type: 'node--student_profile', id: profile.id },
+            },
+          }
+          : {}),
+        field_physical_address: {
+          data: physicalAddressId ? { type: 'node--address', id: physicalAddressId } : null,
+        },
+        field_mailing_address: {
+          data: mailingAddressId ? { type: 'node--address', id: mailingAddressId } : null,
+        },
+      };
+
+      await dispatch(
+        patchDraftApplication({
+          applicationId,
+          attributes: { field_section_1_reviewed: 'yes' },
+          relationships,
+        })
+      ).unwrap();
+
+      setStepData((prev) => ({
+        ...prev,
+        studentInfo: {
+          ...formData,
+          physical_address_node_id: physicalAddressId || '',
+          mailing_address_node_id: mailingAddressId || '',
+        },
+        validation: { ...prev.validation, section_1_reviewed: true },
+      }));
+
+      goToStep(1);
+    } catch (err) {
+      setStepError(err.message || 'Failed to save address information. Please try again.');
+    }
   }
 
   function handleHealthInfoComplete(data) {
@@ -382,21 +609,81 @@ function ApplicationPage() {
     goToStep(2);
   }
 
-  function handleParentInfoComplete(data) {
-    setStepData((prev) => ({
-      ...prev,
-      parentInfo: data,
-      validation: { ...prev.validation, section_3_reviewed: true },
-    }));
-    if (currentApplication?.id) {
-      dispatch(
-        patchDraftApplication({
-          applicationId: currentApplication.id,
-          attributes: { field_section_3_reviewed: 'yes' },
-        })
-      );
+  async function handleParentInfoComplete(data) {
+    setStepError(null);
+
+    let applicationId;
+    try {
+      applicationId = await ensureApplicationId();
+    } catch (err) {
+      setStepError(err.message || 'Failed to save parent information. Please try again.');
+      return;
     }
-    goToStep(3);
+
+    let fatherAddressId = data.father_address_node_id || stepData.parentInfo.father_address_node_id || null;
+    let motherAddressId = data.mother_address_node_id || stepData.parentInfo.mother_address_node_id || null;
+
+    try {
+      if (data.father_address_same_as_student === 'no') {
+        fatherAddressId = await upsertAddressNode(
+          fatherAddressId,
+          {
+            line_1: data.father_address_line_1,
+            line_2: data.father_address_line_2,
+            city: data.father_address_city,
+            state_province: data.father_address_state_province,
+            postal_zip: data.father_address_postal_zip,
+          },
+          `Guardian 1 Address - ${data.father_given_name || ''} ${data.father_surname || ''}`.trim()
+        );
+      } else {
+        fatherAddressId = null;
+      }
+
+      if (data.mother_address_same_as_student === 'no') {
+        motherAddressId = await upsertAddressNode(
+          motherAddressId,
+          {
+            line_1: data.mother_address_line_1,
+            line_2: data.mother_address_line_2,
+            city: data.mother_address_city,
+            state_province: data.mother_address_state_province,
+            postal_zip: data.mother_address_postal_zip,
+          },
+          `Guardian 2 Address - ${data.mother_given_name || ''} ${data.mother_surname || ''}`.trim()
+        );
+      } else {
+        motherAddressId = null;
+      }
+      await dispatch(
+        patchDraftApplication({
+          applicationId,
+          attributes: { field_section_3_reviewed: 'yes' },
+          relationships: {
+            field_father_address: {
+              data: fatherAddressId ? { type: 'node--address', id: fatherAddressId } : null,
+            },
+            field_mother_address: {
+              data: motherAddressId ? { type: 'node--address', id: motherAddressId } : null,
+            },
+          },
+        })
+      ).unwrap();
+
+      setStepData((prev) => ({
+        ...prev,
+        parentInfo: {
+          ...data,
+          father_address_node_id: fatherAddressId || '',
+          mother_address_node_id: motherAddressId || '',
+        },
+        validation: { ...prev.validation, section_3_reviewed: true },
+      }));
+
+      goToStep(3);
+    } catch (err) {
+      setStepError(err.message || 'Failed to save guardian address information. Please try again.');
+    }
   }
 
   function handleAdditionalSupportComplete(data) {
