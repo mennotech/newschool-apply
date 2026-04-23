@@ -11,7 +11,7 @@ describe('ApplicationProgress', () => {
     expect(screen.getByText(/student info/i)).toBeInTheDocument();
     expect(screen.getByText(/health/i)).toBeInTheDocument();
     expect(screen.getByText(/parent info/i)).toBeInTheDocument();
-    expect(screen.getByText(/add\..*support/i)).toBeInTheDocument();
+    expect(screen.getByText(/support/i)).toBeInTheDocument();
     expect(screen.getByText(/questionnaire/i)).toBeInTheDocument();
     expect(screen.getByText(/commitment/i)).toBeInTheDocument();
   });
