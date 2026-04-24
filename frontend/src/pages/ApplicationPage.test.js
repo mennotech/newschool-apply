@@ -23,7 +23,7 @@ jest.mock('../components/steps/CommitmentStep', () => {
 
 process.env.REACT_APP_DRUPAL_BASE_URL = 'http://localhost:8080';
 
-function renderApp({ initialPath = '/apply/student-info', preloadedApplication = {} } = {}) {
+function renderApp({ initialPath = '/apply/student-info', preloadedApplication = {}, strictMode = false } = {}) {
   const store = configureStore({
     reducer: { auth: authReducer, application: applicationReducer },
     preloadedState: {
@@ -39,7 +39,7 @@ function renderApp({ initialPath = '/apply/student-info', preloadedApplication =
       },
     },
   });
-  render(
+  const tree = (
     <Provider store={store}>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
@@ -49,6 +49,7 @@ function renderApp({ initialPath = '/apply/student-info', preloadedApplication =
       </MemoryRouter>
     </Provider>
   );
+  render(strictMode ? <React.StrictMode>{tree}</React.StrictMode> : tree);
   return { store };
 }
 
@@ -160,6 +161,32 @@ describe('ApplicationPage', () => {
   });
 
   describe('Resume and autosave', () => {
+    it('creates only one draft application in StrictMode', async () => {
+      let createCount = 0;
+
+      server.use(
+        rest.post('http://localhost:8080/jsonapi/node/application', (req, res, ctx) => {
+          createCount += 1;
+          return res(
+            ctx.status(201),
+            ctx.json({
+              data: {
+                id: 'strict-mode-draft-id',
+                type: 'node--application',
+                attributes: { field_status: 'pending' },
+              },
+            })
+          );
+        })
+      );
+
+      renderApp({ initialPath: '/apply/student-info', strictMode: true });
+
+      await waitFor(() => {
+        expect(createCount).toBe(1);
+      });
+    });
+
     it('creates a draft and autosaves on step 1 blur for a brand new application', async () => {
       let created = false;
       let patchedBody;

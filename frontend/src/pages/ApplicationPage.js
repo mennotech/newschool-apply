@@ -324,10 +324,8 @@ function ApplicationPage() {
     }
 
     // Start new applications with a draft node immediately so step 1 can autosave on blur.
-    dispatch(createApplication()).then((action) => {
-      if (createApplication.rejected.match(action)) {
-        setStepError(action.payload || 'Failed to start application. Please try again.');
-      }
+    ensureApplicationId().catch((err) => {
+      setStepError(err.message || 'Failed to start application. Please try again.');
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
