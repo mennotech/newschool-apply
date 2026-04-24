@@ -2,6 +2,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.storage.node.field_status
     - node.type.application
 id: node.application.field_status
 field_name: field_status
