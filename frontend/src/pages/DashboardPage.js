@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { logoutUser } from '../store/slices/authSlice';
 import { clearApplication, deleteApplication, fetchApplications, setCurrentApplication } from '../store/slices/applicationSlice';
 
 const STATUS_LABELS = {
