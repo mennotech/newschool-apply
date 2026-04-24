@@ -158,6 +158,10 @@ function parseSchema(text) {
       currentField.required = parseBool(line.slice('required:'.length));
       continue;
     }
+    if (line.startsWith('description:')) {
+      currentField.description = unquote(line.slice('description:'.length));
+      continue;
+    }
     if (line.startsWith('options:')) {
       const rawOptions = line.slice('options:'.length).trim();
       if (!rawOptions) {
@@ -239,6 +243,29 @@ function mapFieldType(field) {
       module: 'core',
       storageSettings: { max_length: 32, is_ascii: false, case_sensitive: false },
       instanceSettings: {},
+    };
+  }
+
+  if (type === 'address_reference') {
+    return {
+      storageType: 'entity_reference',
+      module: 'core',
+      storageSettings: { target_type: 'node' },
+      instanceSettings: {
+        handler: 'default:node',
+        handler_settings: {
+          target_bundles: {
+            address: 'address',
+          },
+          sort: {
+            field: '_none',
+          },
+          auto_create: false,
+          auto_create_bundle: '',
+        },
+      },
+      translatable: true,
+      configDependencies: ['node.type.address'],
     };
   }
 
@@ -339,7 +366,7 @@ function buildStorageConfig(fieldName, mapping) {
     module: mapping.module,
     locked: false,
     cardinality: 1,
-    translatable: false,
+    translatable: Boolean(mapping.translatable),
     indexes: {},
     persist_with_no_fields: false,
     custom_storage: false,
@@ -348,19 +375,24 @@ function buildStorageConfig(fieldName, mapping) {
 
 function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
   const required = bundle === 'application' ? false : Boolean(field.required);
+  const configDependencies = [`field.storage.node.${fieldName}`, `node.type.${bundle}`];
+
+  if (Array.isArray(mapping.configDependencies)) {
+    configDependencies.push(...mapping.configDependencies);
+  }
 
   return {
     langcode: 'en',
     status: true,
     dependencies: {
-      config: [`field.storage.node.${fieldName}`, `node.type.${bundle}`],
+      config: configDependencies,
     },
     id: `node.${bundle}.${fieldName}`,
     field_name: fieldName,
     entity_type: 'node',
     bundle,
     label: field.label,
-    description: section ? `Section: ${section.title}` : '',
+    description: field.description || (section ? `Section: ${section.title}` : ''),
     required,
     translatable: false,
     default_value: {},
