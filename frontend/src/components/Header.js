@@ -57,9 +57,6 @@ function Header() {
               <Link to="/dashboard" className={navClass('/dashboard')}>
                 Dashboard
               </Link>
-              <Link to="/apply" className={navClass('/apply')}>
-                New Application
-              </Link>
               <Link to="/profile" className={navClass('/profile')}>
                 Profile
               </Link>
