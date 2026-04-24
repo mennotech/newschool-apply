@@ -3,17 +3,17 @@ status: true
 dependencies:
   config:
     - field.storage.node.field_father_address
-    - node.type.address
     - node.type.application
+    - node.type.address
 id: node.application.field_father_address
 field_name: field_father_address
 entity_type: node
 bundle: application
-label: 'Guardian 1 Address'
-description: 'Reference to guardian 1 (father) address node'
+label: Guardian 1 Address
+description: Reference to guardian 1 (father) address node
 required: false
 translatable: false
-default_value: {  }
+default_value: {}
 default_value_callback: ''
 settings:
   handler: 'default:node'

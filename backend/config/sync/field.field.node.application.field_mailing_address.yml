@@ -3,17 +3,17 @@ status: true
 dependencies:
   config:
     - field.storage.node.field_mailing_address
-    - node.type.address
     - node.type.application
+    - node.type.address
 id: node.application.field_mailing_address
 field_name: field_mailing_address
 entity_type: node
 bundle: application
-label: 'Mailing Address'
-description: 'Reference to the student mailing address node'
+label: Mailing Address
+description: Reference to the student mailing address node
 required: false
 translatable: false
-default_value: {  }
+default_value: {}
 default_value_callback: ''
 settings:
   handler: 'default:node'

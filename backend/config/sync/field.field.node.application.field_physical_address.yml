@@ -3,17 +3,17 @@ status: true
 dependencies:
   config:
     - field.storage.node.field_physical_address
-    - node.type.address
     - node.type.application
+    - node.type.address
 id: node.application.field_physical_address
 field_name: field_physical_address
 entity_type: node
 bundle: application
-label: 'Physical Address'
-description: 'Reference to the student physical address node'
+label: Physical Address
+description: Reference to the student physical address node
 required: false
 translatable: false
-default_value: {  }
+default_value: {}
 default_value_callback: ''
 settings:
   handler: 'default:node'

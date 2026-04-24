@@ -48,61 +48,21 @@ sections:
         label: Primary / Home Phone Number
         type: phone
         required: true
-      - key: physical_address_line_1
-        label: Physical Address Line 1
-        type: text
+      - key: physical_address
+        label: Physical Address
+        type: address_reference
+        description: Reference to the student physical address node
         required: true
-        chunk: physical_address
-      - key: physical_address_line_2
-        label: Physical Address Line 2
-        type: text
-        required: false
-        chunk: physical_address
-      - key: physical_city
-        label: City
-        type: text
-        required: true
-        chunk: physical_address
-      - key: physical_state_province
-        label: State / Province
-        type: text
-        required: true
-        chunk: physical_address
-      - key: physical_postal_zip
-        label: Postal / Zip Code
-        type: text
-        required: true
-        chunk: physical_address
       - key: mailing_address_differs
         label: Is Mailing Address Different Than Physical Address?
         type: radio
         required: true
         options: [yes, no]
-      - key: mailing_address_line_1
-        label: Mailing Address Line 1
-        type: text
+      - key: mailing_address
+        label: Mailing Address
+        type: address_reference
+        description: Reference to the student mailing address node
         required: false
-        chunk: mailing_address
-      - key: mailing_address_line_2
-        label: Mailing Address Line 2
-        type: text
-        required: false
-        chunk: mailing_address
-      - key: mailing_address_city
-        label: Mailing City
-        type: text
-        required: false
-        chunk: mailing_address
-      - key: mailing_address_state_province
-        label: Mailing State / Province
-        type: text
-        required: false
-        chunk: mailing_address
-      - key: mailing_address_postal_zip
-        label: Mailing Postal / Zip Code
-        type: text
-        required: false
-        chunk: mailing_address
       - key: citizenship_status
         label: Citizenship Status
         type: radio
@@ -187,31 +147,11 @@ sections:
         type: radio
         required: false
         options: [yes, no]
-      - key: father_address_line_1
-        label: Father's Address Line 1
-        type: text
+      - key: father_address
+        label: Guardian 1 Address
+        type: address_reference
+        description: Reference to guardian 1 (father) address node
         required: false
-        chunk: father_address
-      - key: father_address_line_2
-        label: Father's Address Line 2
-        type: text
-        required: false
-        chunk: father_address
-      - key: father_address_city
-        label: Father's City
-        type: text
-        required: false
-        chunk: father_address
-      - key: father_address_state_province
-        label: Father's State / Province
-        type: text
-        required: false
-        chunk: father_address
-      - key: father_address_postal_zip
-        label: Father's Postal / Zip Code
-        type: text
-        required: false
-        chunk: father_address
       - key: father_workplace
         label: Father's Workplace
         type: text
@@ -241,31 +181,11 @@ sections:
         type: radio
         required: false
         options: [yes, no]
-      - key: mother_address_line_1
-        label: Mother's Address Line 1
-        type: text
+      - key: mother_address
+        label: Guardian 2 Address
+        type: address_reference
+        description: Reference to guardian 2 (mother) address node
         required: false
-        chunk: mother_address
-      - key: mother_address_line_2
-        label: Mother's Address Line 2
-        type: text
-        required: false
-        chunk: mother_address
-      - key: mother_address_city
-        label: Mother's City
-        type: text
-        required: false
-        chunk: mother_address
-      - key: mother_address_state_province
-        label: Mother's State / Province
-        type: text
-        required: false
-        chunk: mother_address
-      - key: mother_address_postal_zip
-        label: Mother's Postal / Zip Code
-        type: text
-        required: false
-        chunk: mother_address
       - key: mother_workplace
         label: Mother's Workplace
         type: text
@@ -368,4 +288,5 @@ sections:
 
 notes:
   - This schema is intentionally high-level and designed for later Drupal field mapping and frontend rendering.
+  - Address references assume the reusable Drupal address node type already exists and only define the application-level reference fields.
   - Use backend validation rules as the final source of truth for required fields and business logic.
