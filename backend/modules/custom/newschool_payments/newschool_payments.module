@@ -1,0 +1,32 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function newschool_payments_entity_insert(EntityInterface $entity): void {
+  if (!($entity instanceof NodeInterface) || $entity->bundle() !== 'application') {
+    return;
+  }
+
+  $expectedTitle = sprintf('Application %d', (int) $entity->id());
+  if ((string) $entity->label() === $expectedTitle) {
+    return;
+  }
+
+  static $isUpdatingTitle = FALSE;
+  if ($isUpdatingTitle) {
+    return;
+  }
+
+  $isUpdatingTitle = TRUE;
+  try {
+    $entity->setTitle($expectedTitle);
+    $entity->save();
+  }
+  finally {
+    $isUpdatingTitle = FALSE;
+  }
+}

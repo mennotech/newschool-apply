@@ -131,11 +131,13 @@ class PaymentEndpointsTest extends BrowserTestBase {
     $application = Node::load((int) $application->id());
     $this->assertNotNull($application);
     $this->assertFalse($application->get('field_payment')->isEmpty());
+    $this->assertSame(sprintf('Application %d', (int) $application->id()), (string) $application->label());
 
     $paymentId = (int) $application->get('field_payment')->target_id;
     $payment = Node::load($paymentId);
     $this->assertNotNull($payment);
     $this->assertSame('payment', $payment->bundle());
+    $this->assertSame(sprintf('Payment for Application %d', (int) $application->id()), (string) $payment->label());
     $this->assertSame('pending', (string) $payment->get('field_status')->value);
     $this->assertSame('cs_test_123', (string) $payment->get('field_stripe_checkout_session_id')->value);
   }

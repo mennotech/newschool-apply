@@ -95,6 +95,7 @@ function ApplicationDetailPage() {
   const badgeClass = STATUS_CLASS[status] ?? 'badge--pending';
   const statusLabel = STATUS_LABELS[status] ?? status;
   const profileAttrs = studentProfile?.attributes || {};
+  const applicationTitle = attrs.title || 'Application';
 
   return (
     <main className="page">
@@ -106,7 +107,7 @@ function ApplicationDetailPage() {
         </div>
 
         <div className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <h1 className="page-header__title" style={{ margin: 0 }}>Application</h1>
+          <h1 className="page-header__title" style={{ margin: 0 }}>{applicationTitle}</h1>
           <span className={`badge ${badgeClass}`}>{statusLabel}</span>
         </div>
         {attrs.created && (

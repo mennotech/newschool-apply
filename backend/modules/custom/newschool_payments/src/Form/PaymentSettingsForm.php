@@ -56,6 +56,15 @@ class PaymentSettingsForm extends ConfigFormBase {
 
     $secretFromEnv = getenv('STRIPE_SECRET_KEY');
     $webhookFromEnv = getenv('STRIPE_WEBHOOK_SECRET');
+    $storedSecret = (string) $config->get('stripe_secret_key');
+    $storedWebhookSecret = (string) $config->get('stripe_webhook_secret');
+
+    $activeSecret = (is_string($secretFromEnv) && $secretFromEnv !== '')
+      ? $secretFromEnv
+      : $storedSecret;
+    $activeWebhookSecret = (is_string($webhookFromEnv) && $webhookFromEnv !== '')
+      ? $webhookFromEnv
+      : $storedWebhookSecret;
 
     $form['stripe']['stripe_secret_key'] = [
       '#type' => 'password',
@@ -65,7 +74,13 @@ class PaymentSettingsForm extends ConfigFormBase {
         : ($config->get('stripe_secret_key')
           ? $this->t('A value is saved. Leave blank to keep the existing secret, or enter a new value to replace it.')
           : $this->t('Used only when STRIPE_SECRET_KEY env var is not set.')),
-      '#default_value' => (string) $config->get('stripe_secret_key'),
+      '#default_value' => $storedSecret,
+    ];
+
+    $form['stripe']['stripe_secret_key_preview'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Active secret preview'),
+      '#plain_text' => $this->formatSecretPreview($activeSecret),
     ];
 
     $form['stripe']['stripe_webhook_secret'] = [
@@ -76,7 +91,13 @@ class PaymentSettingsForm extends ConfigFormBase {
         : ($config->get('stripe_webhook_secret')
           ? $this->t('A value is saved. Leave blank to keep the existing secret, or enter a new value to replace it.')
           : $this->t('Used only when STRIPE_WEBHOOK_SECRET env var is not set.')),
-      '#default_value' => (string) $config->get('stripe_webhook_secret'),
+      '#default_value' => $storedWebhookSecret,
+    ];
+
+    $form['stripe']['stripe_webhook_secret_preview'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Active webhook secret preview'),
+      '#plain_text' => $this->formatSecretPreview($activeWebhookSecret),
     ];
 
     $form['stripe']['success_url'] = [
@@ -241,6 +262,21 @@ class PaymentSettingsForm extends ConfigFormBase {
 
     ksort($bundles);
     return $bundles;
+  }
+
+  private function formatSecretPreview(string $secret): string {
+    if ($secret === '') {
+      return (string) $this->t('Not set');
+    }
+
+    $length = strlen($secret);
+    if ($length <= 8) {
+      return str_repeat('*', max(0, $length - 2)) . substr($secret, -2) . ' (len ' . $length . ')';
+    }
+
+    $prefix = substr($secret, 0, 6);
+    $suffix = substr($secret, -4);
+    return $prefix . '...' . $suffix . ' (len ' . $length . ')';
   }
 
 }

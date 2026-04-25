@@ -8,6 +8,20 @@ This document explains how to test the local Stripe payment flow with the Stripe
 - You have a Stripe account and can access a development/test instance in stripe.com.
 - Stripe CLI is installed locally on your computer.
 
+### Install Stripe CLI on Debian (host machine)
+
+Run:
+
+```bash
+sudo apt-get update && sudo apt-get install -y curl gnupg && curl -fsSL https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null && echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee /etc/apt/sources.list.d/stripe.list > /dev/null && sudo apt-get update && sudo apt-get install -y stripe
+```
+
+Verify:
+
+```bash
+stripe --version
+```
+
 ## 1) Log in to Stripe from your local machine
 
 Run:
@@ -23,8 +37,13 @@ This opens a browser for Stripe CLI authentication.
 Run:
 
 ```bash
-stripe listen --forward-to http://localhost/api/payments/stripe/webhook
+stripe listen --forward-to http://localhost:8080/api/payments/stripe/webhook
 ```
+
+Port note:
+
+- If Stripe CLI runs on your local host (outside Docker), include `:8080` because Drupal is exposed on host port 8080.
+- If Stripe CLI runs inside the backend container, use the container-local URL (for example `http://localhost/api/payments/stripe/webhook` from inside that container).
 
 Keep this command running in a terminal window while testing.
 

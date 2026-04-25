@@ -140,6 +140,7 @@ function DashboardPage() {
                 const applyingGrade = app.attributes?.field_student_applying_for_grade?.trim?.() || '';
                 const receiptUrl = paymentByApplication?.[app.id]?.receiptUrl || '';
                 const canViewReceipt = status === 'submitted' && receiptUrl;
+                const applicationTitle = app.attributes?.title || `Application ${applications.length - index}`;
 
                 return (
                   <li key={app.id} className="app-card">
@@ -147,7 +148,7 @@ function DashboardPage() {
                       <div className="app-card__top">
                         <div>
                           <h3 className="app-card__title">
-                            Application {applications.length - index}
+                            {applicationTitle}
                           </h3>
                           {created && (
                             <p className="app-card__date">Started {created}</p>

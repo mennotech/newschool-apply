@@ -63,7 +63,7 @@ class PaymentCheckoutController extends ControllerBase {
 
     $payment = $nodeStorage->create([
       'type' => 'payment',
-      'title' => sprintf('Payment for application %d', (int) $application->id()),
+      'title' => sprintf('Payment for Application %d', (int) $application->id()),
       'field_application' => ['target_id' => $application->id()],
       'field_payer' => ['target_id' => $this->requestUser->id()],
       'field_amount_cents' => (int) $fee['amount_cents'],
