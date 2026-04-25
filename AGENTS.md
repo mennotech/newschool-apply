@@ -11,6 +11,7 @@ This repository uses AI-assisted development under strict architectural, securit
 
 - Work in `/frontend/` for all React UI changes.
 - Work in `/backend/` for all Drupal configuration, initialization scripts, and the Dockerfile.
+- In the backend container, Drush is available at `/var/www/html/vendor/bin/drush` and is not on `PATH` by default.
 - **Never move business logic from `/backend/` to `/frontend/`.** If a feature requires new logic, implement it in Drupal first.
 - The backend defaults to **SQLite** for lightweight local development and testing. Do not change the database engine without maintainer approval.
 

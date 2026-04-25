@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_receipt_url
+    - node.type.payment
+id: node.payment.field_receipt_url
+field_name: field_receipt_url
+entity_type: node
+bundle: payment
+label: 'Receipt URL'
+description: 'Stripe-hosted receipt URL for completed payment.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

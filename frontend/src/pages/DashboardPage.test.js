@@ -38,6 +38,49 @@ function renderPage() {
 }
 
 describe('DashboardPage', () => {
+  it('shows a receipt link for submitted applications when payment has a receipt URL', async () => {
+    server.use(
+      rest.get('http://localhost:8080/jsonapi/node/application', (req, res, ctx) => {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            data: [
+              {
+                id: 'app-3',
+                type: 'node--application',
+                attributes: {
+                  created: 1700000000,
+                  field_status: 'submitted',
+                  field_student_first_name: 'Alex',
+                  field_student_last_name: 'Morgan',
+                },
+                relationships: {
+                  field_payment: {
+                    data: { type: 'node--payment', id: 'pay-3' },
+                  },
+                },
+              },
+            ],
+            included: [
+              {
+                id: 'pay-3',
+                type: 'node--payment',
+                attributes: {
+                  field_receipt_url: 'https://pay.stripe.test/receipts/pi_123',
+                },
+              },
+            ],
+          })
+        );
+      })
+    );
+
+    renderPage();
+
+    const receiptLink = await screen.findByRole('link', { name: /view receipt/i });
+    expect(receiptLink).toHaveAttribute('href', 'https://pay.stripe.test/receipts/pi_123');
+  });
+
   it('shows student name and applying grade for each application card', async () => {
     server.use(
       rest.get('http://localhost:8080/jsonapi/node/application', (req, res, ctx) => {

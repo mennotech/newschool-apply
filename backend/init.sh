@@ -83,6 +83,15 @@ enable_modules() {
   done
 }
 
+enable_newschool_payments_module() {
+  echo "[init.sh] Enabling newschool_payments module..."
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" pm:enable newschool_payments --yes 2>/dev/null || \
+    echo "[init.sh] newschool_payments already enabled or unavailable."
+
+  echo "[init.sh] Running database updates..."
+  sudo -u www-data "${DRUSH}" --root="${DRUPAL_ROOT}/web" updatedb --yes || true
+}
+
 # ── Function: apply config/sync when its content has changed ─────────────────
 apply_config() {
   compute_config_hash() {
@@ -140,6 +149,7 @@ else
 
   echo "[init.sh] Drupal installed successfully."
   enable_modules
+  enable_newschool_payments_module
 fi
 
 apply_config

@@ -35,7 +35,7 @@ function DashboardPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
-  const { applications, fetchStatus } = useSelector((state) => state.application);
+  const { applications, fetchStatus, paymentByApplication } = useSelector((state) => state.application);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [notice, setNotice] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -138,6 +138,8 @@ function DashboardPage() {
                 const lastName = app.attributes?.field_student_last_name?.trim?.() || '';
                 const studentName = `${firstName} ${lastName}`.trim();
                 const applyingGrade = app.attributes?.field_student_applying_for_grade?.trim?.() || '';
+                const receiptUrl = paymentByApplication?.[app.id]?.receiptUrl || '';
+                const canViewReceipt = status === 'submitted' && receiptUrl;
 
                 return (
                   <li key={app.id} className="app-card">
@@ -186,9 +188,21 @@ function DashboardPage() {
                           </button>
                         </>
                       ) : (
-                        <Link to={`/application/${app.id}`} className="btn btn--secondary btn--sm">
-                          View
-                        </Link>
+                        <>
+                          <Link to={`/application/${app.id}`} className="btn btn--secondary btn--sm">
+                            View
+                          </Link>
+                          {canViewReceipt && (
+                            <a
+                              className="btn btn--secondary btn--sm"
+                              href={receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View Receipt
+                            </a>
+                          )}
+                        </>
                       )}
                     </div>
                   </li>

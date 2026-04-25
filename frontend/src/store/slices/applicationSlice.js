@@ -5,8 +5,38 @@ export const fetchApplications = createAsyncThunk(
   'application/fetchApplications',
   async (_, { rejectWithValue }) => {
     try {
-      const result = await get('/jsonapi/node/application?sort=-created');
-      return result.data;
+      const result = await get('/jsonapi/node/application?sort=-created&include=field_payment');
+
+      const includedPayments = (result.included || []).filter(
+        (resource) => resource?.type === 'node--payment'
+      );
+      const paymentsById = includedPayments.reduce((acc, payment) => {
+        acc[payment.id] = payment;
+        return acc;
+      }, {});
+
+      const paymentByApplication = (result.data || []).reduce((acc, app) => {
+        const paymentRef = app?.relationships?.field_payment?.data;
+        if (!paymentRef || !paymentRef.id) {
+          return acc;
+        }
+
+        const payment = paymentsById[paymentRef.id];
+        if (!payment) {
+          return acc;
+        }
+
+        const receiptUrl = payment?.attributes?.field_receipt_url;
+        acc[app.id] = {
+          receiptUrl: typeof receiptUrl === 'string' ? receiptUrl : '',
+        };
+        return acc;
+      }, {});
+
+      return {
+        applications: result.data || [],
+        paymentByApplication,
+      };
     } catch (err) {
       return rejectWithValue(err.message || 'Failed to fetch applications');
     }
@@ -178,11 +208,28 @@ export const patchAndSubmitApplication = createAsyncThunk(
   }
 );
 
+export const createPaymentCheckoutSession = createAsyncThunk(
+  'application/createPaymentCheckoutSession',
+  async (applicationId, { rejectWithValue }) => {
+    try {
+      const result = await post(
+        '/api/payments/checkout-session',
+        { application_id: applicationId },
+        'application/json'
+      );
+      return result;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to start payment checkout');
+    }
+  }
+);
+
 const applicationSlice = createSlice({
   name: 'application',
   initialState: {
     currentApplication: null,
     applications: [],
+    paymentByApplication: {},
     fetchStatus: 'idle',
     steps: [],
     status: 'idle',
@@ -206,7 +253,8 @@ const applicationSlice = createSlice({
       })
       .addCase(fetchApplications.fulfilled, (state, action) => {
         state.fetchStatus = 'idle';
-        state.applications = action.payload;
+        state.applications = action.payload.applications;
+        state.paymentByApplication = action.payload.paymentByApplication;
       })
       .addCase(fetchApplications.rejected, (state) => {
         state.fetchStatus = 'error';
@@ -283,6 +331,17 @@ const applicationSlice = createSlice({
         state.currentApplication = action.payload;
       })
       .addCase(patchAndSubmitApplication.rejected, (state, action) => {
+        state.status = 'error';
+        state.error = action.payload;
+      })
+      .addCase(createPaymentCheckoutSession.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(createPaymentCheckoutSession.fulfilled, (state) => {
+        state.status = 'idle';
+      })
+      .addCase(createPaymentCheckoutSession.rejected, (state, action) => {
         state.status = 'error';
         state.error = action.payload;
       });

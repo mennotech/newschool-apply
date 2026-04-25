@@ -1,0 +1,10 @@
+services:
+  newschool_payments.stripe_client:
+    class: Drupal\newschool_payments\Service\StripeClient
+    arguments:
+      - '@http_client'
+      - '@config.factory'
+      - '@logger.factory'
+
+  Drupal\newschool_payments\Service\StripeClientInterface:
+    alias: newschool_payments.stripe_client

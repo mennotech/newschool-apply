@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { patchAndSubmitApplication } from '../../store/slices/applicationSlice';
+import {
+  patchDraftApplication,
+  createPaymentCheckoutSession,
+} from '../../store/slices/applicationSlice';
 
 /**
  * Map all accumulated form step data to Drupal field names.
@@ -94,7 +97,7 @@ function buildAttributes(stepData) {
   return Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== undefined && v !== '' && v !== null));
 }
 
-function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
+function CommitmentStep({ allStepData, incompleteSections = [], onBack, onCheckoutRedirect }) {
   const dispatch = useDispatch();
   const { currentApplication, status, error } = useSelector((s) => s.application);
 
@@ -103,8 +106,11 @@ function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
   const lastPointRef = useRef({ x: 0, y: 0 });
   const [hasSignature, setHasSignature] = useState(false);
   const [signatureError, setSignatureError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+  const [applicationPrepared, setApplicationPrepared] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+
+  const redirectToCheckout = onCheckoutRedirect || ((url) => window.location.assign(url));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -165,6 +171,8 @@ function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
   }
 
   async function handleSubmit() {
+    setPaymentError(null);
+
     if (incompleteSections.length > 0) {
       setShowIncompleteModal(true);
       return;
@@ -176,25 +184,32 @@ function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
     }
     if (!currentApplication?.id) return;
 
-    const signature = canvasRef.current.toDataURL('image/png');
-    const attributes = buildAttributes({ ...allStepData, signature });
+    if (!applicationPrepared) {
+      const signature = canvasRef.current.toDataURL('image/png');
+      const attributes = buildAttributes({ ...allStepData, signature });
 
-    const result = await dispatch(patchAndSubmitApplication({ applicationId: currentApplication.id, attributes }));
-    if (patchAndSubmitApplication.fulfilled.match(result)) {
-      setSubmitted(true);
+      const submitResult = await dispatch(
+        patchDraftApplication({ applicationId: currentApplication.id, attributes })
+      );
+      if (!patchDraftApplication.fulfilled.match(submitResult)) {
+        return;
+      }
+
+      setApplicationPrepared(true);
     }
-  }
 
-  if (submitted) {
-    return (
-      <section aria-labelledby="commitment-heading" style={{ textAlign: 'center', padding: '2rem 0' }}>
-        <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }} aria-hidden="true">🎉</span>
-        <h2 id="commitment-heading" style={{ marginBottom: '0.5rem' }}>Application Submitted!</h2>
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          Your application has been submitted successfully. We will be in touch.
-        </p>
-      </section>
-    );
+    const checkoutResult = await dispatch(createPaymentCheckoutSession(currentApplication.id));
+    if (createPaymentCheckoutSession.fulfilled.match(checkoutResult)) {
+      const url = checkoutResult.payload?.url;
+      if (typeof url === 'string' && url.length > 0) {
+        redirectToCheckout(url);
+        return;
+      }
+      setPaymentError('Checkout URL was not returned. Please try again.');
+      return;
+    }
+
+    setPaymentError(checkoutResult.payload || 'Unable to start payment checkout. Please try again.');
   }
 
   return (
@@ -295,6 +310,12 @@ function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
           </div>
         )}
 
+        {paymentError && (
+          <div className="form-alert form-alert--error" role="alert" aria-live="assertive">
+            {paymentError}
+          </div>
+        )}
+
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
           <button type="button" className="btn" onClick={onBack} disabled={status === 'loading'}>
             ← Back
@@ -307,9 +328,12 @@ function CommitmentStep({ allStepData, incompleteSections = [], onBack }) {
             disabled={status === 'loading'}
           >
             {status === 'loading' ? (
-              <><span className="spinner" aria-hidden="true" /> Submitting…</>
+              <>
+                <span className="spinner" aria-hidden="true" />
+                {applicationPrepared ? ' Starting payment…' : ' Saving…'}
+              </>
             ) : (
-              'Submit Application'
+              applicationPrepared ? 'Pay Application Fee' : 'Continue to Payment'
             )}
           </button>
         </div>

@@ -10,6 +10,7 @@ import ApplicationPage from './pages/ApplicationPage';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import { fetchCurrentUser } from './store/slices/authSlice';
 
 function App() {
@@ -77,6 +78,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/pay/success" element={<PaymentSuccessPage />} />
       </Routes>
     </BrowserRouter>
   );

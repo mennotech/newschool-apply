@@ -27,6 +27,30 @@ RUN a2enmod rewrite headers
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# local-dev helper: Stripe CLI for webhook testing.
+# Set STRIPE_CLI_VERSION at build time if needed.
+ARG STRIPE_CLI_VERSION=1.40.8
+
+RUN apt-get update && apt-get install -y \
+    gettext-base \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Stripe CLI binary (https://github.com/stripe/stripe-cli/releases)
+RUN set -eux; \
+        arch="$(dpkg --print-architecture)"; \
+        case "$arch" in \
+            amd64) stripe_arch="x86_64" ;; \
+            arm64) stripe_arch="arm64" ;; \
+            *) echo "Unsupported architecture for Stripe CLI: $arch"; exit 1 ;; \
+        esac; \
+        curl -fsSL "https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_${stripe_arch}.tar.gz" -o /tmp/stripe.tar.gz; \
+        tar -xzf /tmp/stripe.tar.gz -C /tmp; \
+        mv /tmp/stripe /usr/local/bin/stripe; \
+        chmod +x /usr/local/bin/stripe; \
+        rm -f /tmp/stripe.tar.gz; \
+        stripe --version
+
 # Set working directory
 WORKDIR /var/www/html
 
@@ -40,8 +64,8 @@ RUN composer create-project drupal/recommended-project:^10 . --no-interaction --
 # Copy custom configuration
 COPY config/ /var/www/html/config/
 
-# Install envsubst (gettext-base) for services.yml templating
-RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
+# Copy custom modules.
+COPY modules/custom/ /var/www/html/web/modules/custom/
 
 # Copy services.yml template (env vars substituted at container startup via init.sh)
 COPY services.yml /var/www/html/services.yml.template
@@ -66,3 +90,4 @@ RUN chmod +x /init.sh
 EXPOSE 80
 
 CMD ["bash", "-c", "/init.sh && apache2-foreground"]
+

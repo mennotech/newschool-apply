@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_stripe_payment_intent_id
+    - node.type.payment
+id: node.payment.field_stripe_payment_intent_id
+field_name: field_stripe_payment_intent_id
+entity_type: node
+bundle: payment
+label: 'Stripe Payment Intent ID'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

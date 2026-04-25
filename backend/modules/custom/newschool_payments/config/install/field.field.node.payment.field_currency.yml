@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_currency
+    - node.type.payment
+id: node.payment.field_currency
+field_name: field_currency
+entity_type: node
+bundle: payment
+label: Currency
+description: 'Three-letter currency code (e.g., CAD).'
+required: true
+translatable: false
+default_value:
+  -
+    value: CAD
+default_value_callback: ''
+settings: {  }
+field_type: string

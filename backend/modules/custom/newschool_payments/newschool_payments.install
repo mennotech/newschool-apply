@@ -1,0 +1,139 @@
+<?php
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_install().
+ */
+function newschool_payments_install(): void {
+  _newschool_payments_ensure_payment_status_values();
+  _newschool_payments_ensure_application_payment_fields();
+  _newschool_payments_ensure_payment_receipt_field();
+}
+
+/**
+ * Ensures known application bundles reference payment nodes.
+ */
+function _newschool_payments_ensure_application_payment_fields(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_payment')) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_payment',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'node',
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ]);
+    $storage->save();
+  }
+
+  $nodeTypeStorage = \Drupal::entityTypeManager()->getStorage('node_type');
+  $bundles = $nodeTypeStorage->loadMultiple();
+
+  foreach ($bundles as $bundle => $nodeType) {
+    // Existing repository bundle is "application"; this also supports
+    // additional application-like bundles without inventing taxonomy.
+    if ($bundle !== 'application' && !str_starts_with($bundle, 'application_') && !str_ends_with($bundle, '_application')) {
+      continue;
+    }
+
+    if (FieldConfig::loadByName('node', $bundle, 'field_payment')) {
+      continue;
+    }
+
+    $field = FieldConfig::create([
+      'field_name' => 'field_payment',
+      'entity_type' => 'node',
+      'bundle' => $bundle,
+      'label' => 'Payment',
+      'description' => 'Current/active payment record for this application.',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:node',
+        'handler_settings' => [
+          'target_bundles' => ['payment' => 'payment'],
+        ],
+      ],
+    ]);
+    $field->save();
+  }
+}
+
+/**
+ * Expands list values for node.field_status so payment statuses are valid.
+ */
+function _newschool_payments_ensure_payment_status_values(): void {
+  $storage = FieldStorageConfig::loadByName('node', 'field_status');
+  if (!$storage || $storage->getType() !== 'list_string') {
+    return;
+  }
+
+  $settings = $storage->getSettings();
+  $allowed = $settings['allowed_values'] ?? [];
+  $existingValues = [];
+  foreach ($allowed as $entry) {
+    if (isset($entry['value'])) {
+      $existingValues[] = $entry['value'];
+    }
+  }
+
+  $paymentStatuses = [
+    'unpaid' => 'Unpaid',
+    'pending' => 'Pending',
+    'paid' => 'Paid',
+    'failed' => 'Failed',
+    'canceled' => 'Canceled',
+  ];
+
+  $changed = FALSE;
+  foreach ($paymentStatuses as $value => $label) {
+    if (!in_array($value, $existingValues, TRUE)) {
+      $allowed[] = ['value' => $value, 'label' => $label];
+      $changed = TRUE;
+    }
+  }
+
+  if ($changed) {
+    $settings['allowed_values'] = $allowed;
+    $storage->set('settings', $settings);
+    $storage->save();
+  }
+}
+
+/**
+ * Ensures payment bundle has a receipt URL field.
+ */
+function _newschool_payments_ensure_payment_receipt_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_receipt_url')) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_receipt_url',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 2048,
+        'is_ascii' => FALSE,
+        'case_sensitive' => FALSE,
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ]);
+    $storage->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'payment', 'field_receipt_url')) {
+    $field = FieldConfig::create([
+      'field_name' => 'field_receipt_url',
+      'entity_type' => 'node',
+      'bundle' => 'payment',
+      'label' => 'Receipt URL',
+      'description' => 'Stripe hosted receipt URL for completed payment.',
+      'required' => FALSE,
+      'settings' => [],
+    ]);
+    $field->save();
+  }
+}
+

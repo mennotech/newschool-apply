@@ -1,0 +1,5 @@
+stripe_secret_key: ''
+stripe_webhook_secret: ''
+success_url: ''
+cancel_url: ''
+fees: {  }

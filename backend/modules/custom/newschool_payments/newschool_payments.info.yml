@@ -1,0 +1,10 @@
+name: NewSchool Payments
+type: module
+description: Payment records and Stripe Checkout integration for application fees.
+core_version_requirement: ^10 || ^11
+package: NewSchool
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:options
+  - drupal:datetime

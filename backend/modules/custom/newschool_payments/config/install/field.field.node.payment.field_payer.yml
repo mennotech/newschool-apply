@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_payer
+    - node.type.payment
+id: node.payment.field_payer
+field_name: field_payer
+entity_type: node
+bundle: payment
+label: Payer
+description: 'User who initiated the payment.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings: {  }
+field_type: entity_reference

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_application
+    - node.type.payment
+id: node.payment.field_application
+field_name: field_application
+entity_type: node
+bundle: payment
+label: Application
+description: 'Application this payment belongs to.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings: {  }
+field_type: entity_reference

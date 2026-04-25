@@ -1,0 +1,5 @@
+newschool_payments.settings:
+  title: 'NewSchool payments'
+  description: 'Configure Stripe settings and fee mappings by application bundle.'
+  route_name: newschool_payments.settings
+  parent: system.admin_config_services

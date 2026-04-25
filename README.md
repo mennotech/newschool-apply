@@ -84,6 +84,8 @@ When running via `docker compose`, this variable is injected automatically.
 |---|---|---|
 | `DRUPAL_ADMIN_USER` | `admin` | Drupal admin username |
 | `DRUPAL_ADMIN_PASS` | `changeme` | Drupal admin password — **change in production** |
+| `STRIPE_SECRET_KEY` | _(unset)_ | Stripe secret key (overrides admin config when set) |
+| `STRIPE_WEBHOOK_SECRET` | _(unset)_ | Stripe webhook signing secret (overrides admin config when set) |
 
 ---
 
@@ -105,6 +107,16 @@ See [AGENTS.md](AGENTS.md) for full architectural guardrails.
 1. **Student Info** — saved to `node--student_profile` via JSON:API.
 2. **Documents** — file uploaded to Drupal file API.
 3. **Review & Submit** — `PATCH node--application` sets `field_status = submitted`.
+
+### Payments Flow (Backend-Authoritative)
+
+1. Frontend calls `POST /api/payments/checkout-session` with session cookie + `X-CSRF-Token`.
+2. Drupal creates a `payment` node (`pending`) and returns Stripe Checkout URL.
+3. Frontend redirects to Stripe-hosted checkout.
+4. Stripe sends `checkout.session.completed` webhook to `POST /api/payments/stripe/webhook`.
+5. Drupal verifies the webhook signature and marks the `payment` node `paid`.
+
+Payment configuration UI: `/admin/config/newschool/payments`
 
 ---
 
