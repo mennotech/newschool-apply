@@ -66,7 +66,9 @@ Implementation options for the files directory:
 - Preferred: symlink `/var/www/html/web/sites/default/files` to `/data/files`
 - Acceptable: bind or copy-on-start pattern if the image/runtime arrangement requires it
 
-Regardless of implementation option, the files directory must be owned by `www-data:www-data` with permissions `755`. The symlink target (`/data/files`) must carry the same ownership and permissions. Never use `777` for the files directory or its target.
+Regardless of implementation option, the files directory must be owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` per Drupal's security guidance — no world read or execute). The symlink target (`/data/files`) must carry the same ownership and permissions. Never use `777` for the files directory or its target.
+
+The SQLite database (`/data/sqlite/db.sqlite`) must **not** be stored inside `sites/default/files`. Keep SQLite in a separate path that is never served as a public file, as shown in the layout above.
 
 If the final build uses different paths, update this document and keep the same design constraints: one persistent location for SQLite and one persistent location for uploaded files.
 
@@ -388,9 +390,10 @@ Recommended order:
 3. replace the SQLite file with the restored copy
 4. synchronize the files directory from the restore target
 5. repair ownership and permissions:
-   - `sites/default/files` (and its contents) must be owned by `www-data:www-data` with permissions `755`. Never use `777`.
-   - `settings.php` must be set to `444` (read-only) after restore so the web server cannot modify it.
-   - The rest of the Drupal codebase must NOT be writable by `www-data`.
+   - `sites/default/files` (and its contents) must be owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` — no world access). Files inside must be `660`.
+   - `settings.php` must be set to `440` (read-only for owner and group, no access for others) after restore so the web server cannot modify it.
+   - The rest of the Drupal codebase must NOT be writable by `www-data`. Codebase directories should be `750` and files `640`.
+   - The SQLite database must remain in its dedicated path (e.g., `/data/sqlite/db.sqlite`), never inside `sites/default/files`.
 
 For files synchronization, prefer `rsync` semantics over destructive raw moves when possible.
 

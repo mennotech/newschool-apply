@@ -107,13 +107,15 @@ INIT-PROMPT-FULL.md             — This file
   - Builds from `./backend/Dockerfile`
   - Ports: `8080:80` (so `http://localhost:8080` reaches Drupal)
   - Environment variables: `DRUPAL_ADMIN_USER`, `DRUPAL_ADMIN_PASS`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CORS_ALLOWED_ORIGINS`
-  - Volume: `drupal_db:/var/www/html/web/sites/default/files` (Drupal files directory and SQLite database)
+  - Volume: `backend_drupal_files:/var/www/html/web/sites/default/files` (Drupal uploaded files directory only)
+  - Volume: `backend_drupal_db:/var/drupal-db` (SQLite database, stored outside `sites/default/files` to prevent web exposure)
 - Frontend service:
   - Builds from `./frontend/Dockerfile.dev` (for development) or `./frontend/Dockerfile` (for production)
   - Ports: `3000:3000`
   - Environment: `REACT_APP_DRUPAL_BASE_URL=http://localhost:8080`
   - Volume mount: `./frontend/src:/app/src` (for hot-reload in dev)
-- Named volume: `drupal_db` for persistent Drupal files and SQLite database storage
+- Named volume: `backend_drupal_files` for persistent Drupal uploaded files
+- Named volume: `backend_drupal_db` for the SQLite database stored at `/var/drupal-db/db.sqlite` (outside the webroot)
 
 ### Environment Configuration
 
@@ -162,11 +164,11 @@ Frontend starts on `http://localhost:3000` (React SPA).
 
 ### Database Reset
 
-Drupal SQLite database is stored in the named volume `drupal_db`. To reset:
+Drupal SQLite database is stored in the named volume `backend_drupal_db` (mounted at `/var/drupal-db/db.sqlite`, outside `sites/default/files`). To reset:
 
 ```bash
-docker-compose down -v    # Remove volume
-docker-compose up         # Recreates fresh Drupal instance
+docker compose down -v    # Remove volumes
+docker compose up         # Recreates fresh Drupal instance
 ```
 
 ---

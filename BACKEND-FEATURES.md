@@ -25,12 +25,12 @@
 
 - Container startup runs `backend/init.sh` before Apache foreground process.
 - Startup script ensures:
-  - `sites/default/files` exists and is owned by `www-data:www-data` with permissions `755`. Never set this directory to `777`; world-writable directories are a security risk.
+  - `sites/default/files` exists and is owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` per Drupal's security guidance). No world read or execute permissions; only the owning user and group may access this directory.
   - `settings.php` exists and is written during first-time setup.
-  - After `settings.php` is written, its permissions are locked to `444` (read-only for all) so the web server cannot modify it. This is a Drupal security requirement.
-  - SQLite database configuration is present in `settings.php`.
+  - After `settings.php` is written, its permissions are locked to `440` (read-only for owner and group, no access for others) so the web server cannot modify it. This is a Drupal security requirement.
+  - SQLite database configuration is present in `settings.php`. The SQLite database file is stored at `/var/drupal-db/db.sqlite`, which is **outside `sites/default/files`** and outside the webroot. Do not store the SQLite database inside `sites/default/files`; that directory is web-accessible and serves uploaded files.
   - Config sync directory is set to `/var/www/html/config/sync`.
-- The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Only the `sites/default/files` directory requires web server write access.
+- The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Codebase directories use permissions `750` and files use `640` per Drupal's security guidance. Only the `sites/default/files` directory requires web server write access.
 - Fresh installs are automatic when no valid Drupal SQLite schema is detected.
 - Installation uses configured admin credentials from environment variables.
 - Required modules are enabled during install, including:
