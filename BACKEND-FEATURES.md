@@ -6,12 +6,14 @@
 - Drupal is the system of record for authentication, authorization, workflow state, validation, and business rules.
 - Backend exposes JSON:API resources and custom endpoints consumed by the React frontend.
 - Local development defaults to SQLite for lightweight startup and testing.
+- The backend schema direction is multi-bundle: one reusable application field set, several concrete application bundles, and reusable support records for people and addresses.
 
 ## Runtime And Deployment Features
 
 - Backend image is built from `php:8.2-apache-bookworm`.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Drush is installed and used for install-time/bootstrap operations.
+- Drush should added to the docker image path for easy testing
 - Stripe CLI is installed in the backend image for local webhook testing.
 - Required PHP extensions for Drupal and media handling are installed, including:
   - `pdo_sqlite`
@@ -36,7 +38,6 @@
   - `rest`
   - `file`
   - `image`
-  - Social auth modules when available
   - `newschool_payments`
 - JSON:API write mode is explicitly enabled (`read_only = 0`).
 - Roles are created on first install:
@@ -54,6 +55,19 @@
 - Config synchronization includes content types, fields, form/view displays, and related settings.
 - Startup script supports partial config import from the sync directory.
 - Backend service CORS origins are injected from env via `services.yml.template`.
+
+## Schema And Scaffolding Features
+
+- `application-form.schema.yaml`
+- The schema separates bundles into:
+  - `reusable_bundles`
+  - `application_bundles`
+- `backend/scripts/scaffold-drupal-from-schema.js` now supports:
+  - catalog schemas with multiple bundles
+  - inherited shared fields from a reusable base bundle
+  - reusable supporting record bundles
+  - multi-value typed contact-list fields
+  - dedicated reference field mappings for person, address, and student profile relationships
 
 ## Authentication And Session Features
 
@@ -77,47 +91,51 @@
 | `/user/login_status?_format=json` | GET | Return `1` or `0` for current session auth state |
 | `/session/token` | GET | Return CSRF token for state-changing requests |
 
-## Content Model Features
-
-- Backend provides Drupal content entities for the admissions workflow, including:
-  - Application records
-  - Student profiles
-  - Documents
-  - Addresses
-  - Profile data
-- Application and profile fields are configured and versioned through Drupal config exports.
-- JSON:API exposes CRUD operations for configured node bundles and related resources.
-- Backend remains authoritative for persisted workflow status and submission timestamps.
-
 ## Bundle Type Catalog
 
-- Backend currently uses five primary node bundles:
+- Reusable/shared bundle catalog include:
   - `application`
+  - `person`
+  - `address`
+- Dedicated application bundles include:
+  - `application_partial_programming`
+  - `application_full_early_years`
+  - `application_full_middle_years`
+  - `application_full_senior_years`
+- Existing supporting bundles still expected by the broader platform include:
   - `student_profile`
   - `document`
-  - `address`
-  - `payment` (provided by `newschool_payments`)
+  - `payment`
 
-### Application Bundle (`application`)
+### Reusable Application Bundle (`application`)
 
-- Label/intent: `Application` - school application submitted by a parent on behalf of a student.
-- Role in workflow: primary aggregate record for the full multi-step admissions process.
-- Stores student, health, guardian, support, questionnaire, commitment, and section-review status fields.
-- Key relationship fields include:
-  - `field_student_profile` -> `student_profile`
-  - `field_physical_address` -> `address`
-  - `field_mailing_address` -> `address`
-  - `field_father_address` -> `address`
-  - `field_mother_address` -> `address`
-  - `field_payment` -> `payment` (added by payment module)
-- Workflow/status fields include:
-  - `field_status` (draft/submitted lifecycle)
-  - `field_submitted_at`
-  - `field_section_1_reviewed` through `field_section_6_reviewed`
-- Address decision flags on application include:
-  - `field_mailing_address_differs` (`yes|no`)
-  - `field_father_address_same_a45c44` (`yes|no`)
-  - `field_mother_address_same_afa04c` (`yes|no`)
+- Holds only reusable application-level fields and relationships shared by all application types.
+- Shared fields include:
+  - lifecycle status
+  - submission timestamp
+  - student profile reference
+  - primary and secondary guardian person references
+  - household relationship and custody fields
+  - shared section-review markers
+- These shared fields can be inherited into dedicated application bundles during scaffold generation.
+
+### Dedicated Application Bundles
+
+- Each application type has its own bundle so its field model can diverge independently over time.
+- `application_partial_programming` currently carries the migrated partial-program field set.
+- `application_full_early_years`, `application_full_middle_years`, and `application_full_senior_years` are scaffolded placeholders for future form-specific fields.
+- Dedicated application bundles inherit the reusable application field set while owning their own application-type-specific attributes.
+
+### Person Bundle (`person`)
+
+- `person` is the new normalized contact record for parents, guardians, and reusable emergency contacts.
+- Identity fields include given name, middle name, surname, preferred name, relationship to student, and workplace.
+- Contact methods are stored as multi-value typed lists:
+  - `email_addresses`
+  - `phone_numbers`
+- Each contact value uses `type:value` formatting, for example `work:jdoe@contoso.com`.
+- Address relationships are references to reusable address records rather than embedded address strings.
+- The backend must validate contact formatting and cardinality rules.
 
 ### Student Profile Bundle (`student_profile`)
 
@@ -187,6 +205,17 @@
   - `document` -> `application`
   - `application` -> `payment` (via payment module)
 - Backend enforces auth and CSRF requirements for mutating operations.
+- JSON:API remains enabled and writable for authenticated requests.
+- The backend data model expects JSON:API consumers to:
+  - create and update reusable `person` records
+  - create and update reusable `address` records
+  - link those records into concrete application bundles through entity references
+
+## User-Owned Reusable Record Library
+
+- Authenticated users should be able to list and reuse their `person` and `address` records.
+- Backend authorization remains responsible for ensuring users can only access their own reusable records.
+- Reusing a person or address in a later application should happen by reference rather than by copying record contents into the application bundle.
 
 ## Custom Payments Module Features
 

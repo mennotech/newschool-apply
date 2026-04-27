@@ -6,6 +6,8 @@
 - Routing is handled client-side with protected and public routes.
 - Authenticated users can log in, register, start a new application, resume draft applications, review submitted applications, and view their profile.
 - Frontend integrates with Drupal via JSON:API and Drupal session-based authentication.
+- The frontend needs to accommodate multiple application types
+- Guardian and emergency contact workflows are built around reusable `Person` records and reusable `Address` records provided by Drupal.
 
 ## Routing And Access Control
 
@@ -18,6 +20,8 @@
   - `/apply` and `/apply/:step` for the multi-step application flow.
   - `/profile` for account details.
   - `/application/:id` for viewing a submitted or existing application.
+  - `/records/people` for viewing list of used people records.
+  - `/records/addresses` for viewing list of used address records.
 - Protected route wrapper redirects unauthenticated users to the login screen.
 - App verifies the current Drupal-backed session on initial load.
 - App re-checks session validity when the browser tab becomes visible again.
@@ -29,6 +33,8 @@
 - Authenticated navigation includes:
   - Dashboard
   - New Application
+  - People
+  - Addresses
   - Profile
   - Log out
 - Mobile navigation uses a hamburger menu and closes automatically on route changes.
@@ -117,9 +123,51 @@
 - Draft applications expose a Continue action.
 - Draft applications expose a Delete action with a confirmation dialog.
 - Non-draft applications expose a View action.
+- Dashboard should support creating more than one application type.
+- New application flow should let the user choose among available bundles, including:
+  - Partial Programming
+  - Full Early Years
+  - Full Middle Years
+  - Full Senior Years
+- Existing applications should display their concrete application type, not just a generic application label.
 - Continue action stores the selected application in frontend state and routes into the step flow.
 - Draft deletion shows a success notice and removes the draft from the list.
 - Leaving the dashboard clears any previously selected application from application state.
+
+
+### Dashboard - Reusable Records Block
+
+- Authenticated users should have a People block below Applications that lists reusable `Person` records.
+- Authenticated users should have an Addresses block below Applications  that lists reusable `Address` records.
+- Each library block should support:
+  - listing existing records
+  - editing an existing record
+  - listing applications that reference this record
+- The record library should reduce duplicate data entry across future applications.
+
+## Person Record UX
+
+- Guardian entry should use reusable Person cards rather than hardcoded father/mother form blocks.
+- Application flows should support selecting an existing person or creating a new person inline.
+- Person editing should prioritize speed and clarity with:
+  - card-based guardian summaries
+  - inline add/edit panels or modals
+  - typed email chips
+  - typed phone chips
+  - address pickers backed by reusable address records
+- UI copy should refer to roles such as primary guardian, secondary guardian, emergency contact, or other relationship labels instead of assuming mother/father only.
+
+## Contact Entry Rules
+
+- Email entries should be collected as `type:value`, for example `work:jdoe@contoso.com`.
+- Phone entries should be collected as `type:value`, for example `mobile:2045551234`.
+- Client-side validation should help users maintain the expected format, but Drupal remains authoritative.
+
+## Address Reuse UX
+
+- Address selection should allow a person or application to reference an existing address.
+- Users should be able to create a new address inline when no suitable record exists.
+- UI should clearly communicate when a person is reusing an address versus creating a new one.
 
 ## Profile Features
 
@@ -129,6 +177,9 @@
 
 ## Multi-Step Application Flow
 
+- The application wizard is application-type aware.
+- Shared application fields are handled consistently across all application bundles.
+- Bundle-specific steps are driven by the concrete application type so future full-program forms can diverge without overloading the partial-program flow.
 - Application process is implemented as a multi-step wizard with the following structure:
   - **Required Steps (6):**
     - Student Info
@@ -152,6 +203,8 @@
 
 ## Step 1: Student Information
 
+- Partial-program applications continue to capture student identity and grade details.
+- Student address capture prefers reusable address selection where practical.
 - Collects detailed student information including:
   - Legal first, middle, and last name
   - Preferred name
@@ -160,7 +213,7 @@
   - Current grade
   - Applying-for grade
   - Primary/home phone number
-  - Physical address
+  - Physical address (via reusable address picker or new address entry)
   - Mailing address difference flag
   - Citizenship status
   - Previous Manitoba school attendance flag
@@ -175,10 +228,12 @@
 
 ## Step 2: Health Information
 
+- Emergency contacts are modeled as reusable person references where appropriate.
+- Long-form medical information remains on the concrete application bundle.
 - Collects health and emergency information including:
   - Manitoba health number segments
-  - Emergency contact name
-  - Emergency contact phone
+  - Emergency contact (selected from reusable Person records or created inline)
+  - Emergency contact phone (from person record or entered directly)
   - Allergies
   - Frequently used medications
   - Medical restrictions
@@ -188,13 +243,16 @@
 
 ## Step 3: Parent / Guardian Information
 
-- Collects parent/guardian information for both father and mother fields including:
-  - Names
-  - Address-same-as-student flags
+- Step focuses on selecting, reviewing, and editing reusable Person records rather than re-entering guardian fields every time.
+- Required shared relationship fields such as custody and household status remain part of the application workflow.
+- Primary and secondary guardian selection is obvious, reversible, and mobile-friendly.
+- UI copy refers to roles such as primary guardian, secondary guardian, and other relationship labels instead of assuming mother/father only.
+- Guardian person cards surface:
+  - Name
+  - Address (via reusable address reference)
+  - Typed email contacts
+  - Typed phone contacts
   - Workplace
-  - Work number
-  - Cell number
-  - Email
 - Collects household relationship details including:
   - Parents’ relationship status
   - Who the student lives with
@@ -217,8 +275,10 @@
 
 ## Step 5: Parent Questionnaire
 
+- Questionnaire and commitment data are application-specific.
+- Questionnaire ownership can reference an existing person record where that improves reuse.
 - Collects questionnaire responses including:
-  - Parent name
+  - Parent name (or linked person reference)
   - Christian testimony
   - Reason for interest in the school
 - Performs client-side validation for required questionnaire responses.
@@ -282,8 +342,10 @@
 ## Validation And Error Handling
 
 - Each validated form step performs client-side validation before advancing.
-- Invalid fields are marked with `aria-invalid` and inline error messages.
+- The frontend validates required UI inputs, typed contact formatting (`type:value`), and obvious record-selection gaps.
+- Invalid fields are marked with `aria-invalid` and inline error messages with proper labels and `aria-describedby` relationships.
 - Validation summary note appears below action buttons when a step has validation problems.
+- Server-returned validation errors for person, address, or application relationships are surfaced directly to the user.
 - Additional Support Declaration requires explicit review confirmation so every step in the wizard is validated.
 - Step review/validation status for all pages is persisted in Drupal and rehydrated on resume.
 - Submission prevents incomplete required sections from being submitted.
@@ -351,9 +413,15 @@
 - JSON:API errors are parsed into readable frontend error messages.
 - Login/logout flows use Drupal endpoints while entity reads/writes use JSON:API.
 
-## Frontend State Management
+## State Management Direction
 
 - Redux Toolkit is used for auth state and application state.
+- Frontend state tracks:
+  - The selected application type
+  - Reusable person records available to the user
+  - Reusable address records available to the user
+  - The current application draft and its referenced records
+- Application state preserves references to reusable records instead of flattening guardian data into the application draft.
 - Auth slice handles:
   - Login
   - Registration
@@ -362,7 +430,7 @@
   - Logout
 - Application slice handles:
   - Fetching application lists
-  - Creating applications
+  - Creating applications (with type selection)
   - Fetching a draft by ID
   - Autosaving draft changes
   - Deleting draft applications
@@ -372,20 +440,29 @@
 - Current application is tracked in state to support draft continuation.
 - Payment confirmation data is cached in Redux to track receipt URLs by application ID.
 
-## Accessibility And UX Features
+## Accessibility And UX Requirements
 
 - Semantic headings, forms, and labels are used throughout the UI.
+- Record library and inline guardian editing must remain keyboard accessible.
+- Person cards, dialogs, and selection controls use semantic buttons, labels, and headings.
+- Reusable-record selection is optimized for low-friction editing on both desktop and mobile.
 - Protected flows redirect unauthenticated users predictably.
 - Loading spinners are paired with text labels.
-- Inline errors use accessible relationships via `aria-describedby` where implemented.
+- Inline errors use accessible relationships via `aria-describedby` and `aria-invalid` where implemented.
 - Stepper buttons expose accessible labels for current and completed states.
 - Modal warning uses `role="dialog"` and `aria-modal="true"`.
 - Forms support keyboard submission and button-based step navigation.
 
-## Testing Coverage Present In Frontend
+## Testing Coverage Direction
 
 - Jest and React Testing Library coverage exists for core frontend behavior.
-- Tests currently cover:
+- Tests should cover:
+  - Choosing an application type.
+  - Viewing reusable people and addresses from the record library.
+  - Selecting an existing person for guardian fields.
+  - Inline person creation and editing.
+  - Typed contact-list validation (`type:value` format).
+  - Address reuse and address creation flows.
   - API client behavior (GET, POST, PATCH, DELETE, file upload).
   - Protected route behavior and login redirects.
   - Progress stepper rendering and navigation state.
@@ -398,12 +475,13 @@
   - Commitment step submission safeguards and signature validation.
   - Auth state management (login, registration, session restore, logout).
 - MSW (Mock Service Worker) is used to mock backend API behavior during frontend tests.
-- Mock API endpoints include session management, user data, application entities, and document uploads.
+- Mock API endpoints include session management, user data, application entities, document uploads, person records, and address records.
 
 ## Current Frontend Boundaries
 
-- Business rules remain backend-driven through Drupal.
-- Frontend currently renders and edits application data but does not independently decide permissions or workflow authority.
+- Business rules, ownership checks, and final validation remain backend-driven through Drupal.
+- Frontend provides a user-friendly reuse workflow for `Person` and `Address` records but does not become the source of truth for those records.
+- Frontend renders and edits application data but does not independently decide permissions or workflow authority.
 - Application detail page currently displays uploaded document metadata rather than a full document management UI.
 
 ## Environment Configuration
