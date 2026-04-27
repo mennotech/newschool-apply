@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_father_email
+    - node.type.application
+id: node.application.field_father_email
+field_name: field_father_email
+entity_type: node
+bundle: application
+label: 'Father''s Email'
+description: 'Section: Parent / Guardian Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: email

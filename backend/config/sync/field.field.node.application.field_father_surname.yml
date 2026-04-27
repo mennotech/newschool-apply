@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_father_surname
+    - node.type.application
+id: node.application.field_father_surname
+field_name: field_father_surname
+entity_type: node
+bundle: application
+label: 'Father''s Surname'
+description: 'Section: Parent / Guardian Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

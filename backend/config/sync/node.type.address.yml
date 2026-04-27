@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Address
+type: address
+description: Reusable address entity for forms
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

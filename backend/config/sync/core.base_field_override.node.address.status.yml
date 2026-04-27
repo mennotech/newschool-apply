@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.address
+  module:
+    - node
+id: node.address.status
+entity_type: node
+bundle: address
+field_name: status
+label: Published
+description: ''
+required: false
+translatable: true
+default_value:
+  - value: 1
+default_value_callback: ''
+settings:
+  on_label: Published
+  off_label: Unpublished
+field_type: boolean

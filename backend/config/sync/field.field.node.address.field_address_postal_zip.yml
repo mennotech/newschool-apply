@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  entity_type: node
+  enforced:
+    config:
+      - node.type.address
+  module:
+    - node
+id: node.address.field_address_postal_zip
+field_name: field_address_postal_zip
+entity_type: node
+bundle: address
+label: 'Postal / Zip Code'
+description: ''
+required: true
+translatable: false
+default_value: []
+default_value_callback: ''
+settings: {}
+field_type: string

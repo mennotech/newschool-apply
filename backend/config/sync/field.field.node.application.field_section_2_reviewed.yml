@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_section_2_reviewed
+    - node.type.application
+id: node.application.field_section_2_reviewed
+field_name: field_section_2_reviewed
+entity_type: node
+bundle: application
+label: Section 2 Reviewed
+description: 'Section: Health Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

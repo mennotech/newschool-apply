@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.student_profile
+id: node.student_profile.status
+field_name: status
+entity_type: node
+bundle: student_profile
+label: 'Publishing status'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings: {}
+field_type: boolean

@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.application
+    - node.type.student_profile
+id: node.application.field_student_profile
+field_name: field_student_profile
+entity_type: node
+bundle: application
+label: 'Student profile'
+description: 'Reference to the student profile'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      student_profile: student_profile
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

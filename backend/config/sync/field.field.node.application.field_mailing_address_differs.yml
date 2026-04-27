@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mailing_address_differs
+    - node.type.application
+id: node.application.field_mailing_address_differs
+field_name: field_mailing_address_differs
+entity_type: node
+bundle: application
+label: 'Is Mailing Address Different Than Physical Address?'
+description: 'Section: Student Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

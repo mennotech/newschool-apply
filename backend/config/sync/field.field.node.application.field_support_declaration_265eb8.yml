@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_support_declaration_265eb8
+    - node.type.application
+id: node.application.field_support_declaration_265eb8
+field_name: field_support_declaration_265eb8
+entity_type: node
+bundle: application
+label: Support Declaration Reviewed
+description: 'Section: Additional Support Declaration'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

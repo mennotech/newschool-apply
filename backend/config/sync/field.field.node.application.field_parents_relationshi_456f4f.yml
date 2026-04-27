@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_parents_relationshi_456f4f
+    - node.type.application
+id: node.application.field_parents_relationshi_456f4f
+field_name: field_parents_relationshi_456f4f
+entity_type: node
+bundle: application
+label: 'Student''s Parents Are'
+description: 'Section: Parent / Guardian Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

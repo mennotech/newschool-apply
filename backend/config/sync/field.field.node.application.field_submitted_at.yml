@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.application
+id: node.application.field_submitted_at
+field_name: field_submitted_at
+entity_type: node
+bundle: application
+label: 'Submitted at'
+description: 'Timestamp when application was submitted'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

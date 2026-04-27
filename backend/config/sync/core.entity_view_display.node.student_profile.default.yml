@@ -1,0 +1,53 @@
+uuid: d8410800-cb6f-4957-8ad0-9d92fb56ad48
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.student_profile.field_date_of_birth
+    - field.field.node.student_profile.field_first_name
+    - field.field.node.student_profile.field_grade_applying_for
+    - field.field.node.student_profile.field_last_name
+    - node.type.student_profile
+  module:
+    - datetime
+    - user
+id: node.student_profile.default
+targetEntityType: node
+bundle: student_profile
+mode: default
+content:
+  field_date_of_birth:
+    type: datetime_default
+    label: above
+    settings:
+      timezone_override: ''
+      format_type: html_date
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_first_name:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_grade_applying_for:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  field_last_name:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 2
+    region: content
+hidden:
+  links: true

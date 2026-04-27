@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_diagnosis_assessmen_18b9ab
+    - node.type.application
+id: node.application.field_diagnosis_assessmen_18b9ab
+field_name: field_diagnosis_assessmen_18b9ab
+entity_type: node
+bundle: application
+label: Diagnosis / Assessments
+description: 'Section: Additional Support Declaration'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: text_long

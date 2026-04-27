@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Application
+type: application
+description: School application submitted by a parent on behalf of a student
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false
