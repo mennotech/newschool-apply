@@ -117,13 +117,17 @@
 
 ## Multi-Step Application Flow
 
-- Application process is implemented as a six-step wizard:
-  - Student Info
-  - Health Information
-  - Parent / Guardian Information
-  - Additional Support
-  - Questionnaire
-  - Commitment
+- Application process is implemented as a multi-step wizard with the following structure:
+  - **Required Steps (6):**
+    - Student Info
+    - Health Information
+    - Parent / Guardian Information
+    - Additional Support
+    - Questionnaire
+    - Commitment
+  - **Optional/Review Steps (2):**
+    - Documents (file uploads)
+    - Review (summary and confirmation)
 - Each step is route-addressable through `/apply/:step`.
 - Step progress is rendered at the top of the page.
 - Progress stepper displays:
@@ -223,6 +227,33 @@
   - Records submission timestamp.
   - Shows a success confirmation state.
 
+## Step 7: Documents Upload (Optional)
+
+- Allows uploading supporting documents (transcripts, immunization records, etc.).
+- File upload input with drag-and-drop support.
+- Client-side file validation:
+  - Maximum file size: 5 MB per file.
+  - File type validation before submission.
+- Multiple files can be uploaded in sequence.
+- Uploaded files are created as `document` entities linked to the application.
+- Displays confirmation after successful upload.
+- Shows error messages if upload fails.
+- Optional step — users can proceed without uploading documents.
+- Uploaded document metadata is displayed on the application detail page.
+
+## Step 8: Review And Final Submission
+
+- Summary review page displaying all collected application information.
+- Allows quick navigation back to any previous step for edits.
+- Final confirmation of all information before actual submission.
+- Displays a final submit button to trigger application submission.
+- Submission endpoint sends all accumulated application data to Drupal.
+- On successful submission:
+  - Application status is updated to "submitted".
+  - Submission timestamp is recorded.
+  - User is redirected to payment confirmation page if payment is required.
+  - Confirmation state displays success messaging.
+
 ## Draft Saving And Resume Features
 
 - New applications create a Drupal `application` draft entity when the application flow is opened so step 1 blur autosave works immediately.
@@ -263,6 +294,37 @@
 - Includes a back-to-dashboard action.
 - Shows loading and error states.
 
+## Payment Features
+
+- Payment workflows are integrated after successful application submission.
+- Applications can be linked to payment entities via the `field_payment` relationship.
+- Payment tracking includes:
+  - Receipt URL stored in `field_receipt_url` attribute on payment nodes.
+  - Payment status tracked separately via backend checkout system.
+- Dashboard displays a link to receipt/payment information for submitted applications.
+
+### Payment Success Page
+
+- Dedicated confirmation page that users are redirected to after application submission if payment is required.
+- Route: `/payment-success?session_id={session_id}`.
+- Polls the checkout status API endpoint (`/api/payments/checkout-status?session_id={session_id}`) to verify payment completion.
+- Polling configuration:
+  - Maximum 10 polling attempts.
+  - 3-second interval between attempts.
+  - Automatically stops after successful confirmation or max attempts reached.
+- Displays:
+  - Payment confirmation message once status is verified.
+  - Success state showing payment and submission completion.
+  - Link back to dashboard after successful payment.
+- Handles polling timeout gracefully with user-friendly messaging.
+- Redux state tracks payment confirmation with receipt URL via `paymentByApplication` store.
+
+### Payment And Application Linking
+
+- Applications can include a relationship to payment entities (`field_payment`).
+- Payment entities are `node--payment` type with associated metadata.
+- Receipt URLs are stored as attributes on payment nodes and displayed in dashboards and detail pages.
+
 ## Drupal API Integration
 
 - Centralized API client wraps Drupal requests.
@@ -294,7 +356,9 @@
   - Deleting draft applications
   - Final submission patch
   - Document upload/create actions
+  - Payment tracking and receipt URLs (via `paymentByApplication` state)
 - Current application is tracked in state to support draft continuation.
+- Payment confirmation data is cached in Redux to track receipt URLs by application ID.
 
 ## Accessibility And UX Features
 
@@ -309,18 +373,33 @@
 ## Testing Coverage Present In Frontend
 
 - Jest and React Testing Library coverage exists for core frontend behavior.
-- Tests currently cover areas including:
-  - API client behavior
-  - Protected route behavior
-  - Progress stepper rendering and navigation state
-  - Login page behavior
-  - Student information step validation/submission
-  - Application page flow and draft hydration
-  - Commitment step submission safeguards
-- MSW is used to mock backend API behavior during frontend tests.
+- Tests currently cover:
+  - API client behavior (GET, POST, PATCH, DELETE, file upload).
+  - Protected route behavior and login redirects.
+  - Progress stepper rendering and navigation state.
+  - Login page behavior and authentication flow.
+  - Registration form validation.
+  - Dashboard application list, delete functionality, and status display.
+  - Student information step validation and submission.
+  - Application page flow, step transitions, auto-save, and draft hydration.
+  - Review step before final submission.
+  - Commitment step submission safeguards and signature validation.
+  - Auth state management (login, registration, session restore, logout).
+- MSW (Mock Service Worker) is used to mock backend API behavior during frontend tests.
+- Mock API endpoints include session management, user data, application entities, and document uploads.
 
 ## Current Frontend Boundaries
 
 - Business rules remain backend-driven through Drupal.
 - Frontend currently renders and edits application data but does not independently decide permissions or workflow authority.
 - Application detail page currently displays uploaded document metadata rather than a full document management UI.
+
+## Environment Configuration
+
+- Application configuration uses environment variables for all environment-specific values.
+- **REACT_APP_DRUPAL_BASE_URL** – Base URL for Drupal backend API endpoints. Must be set during build/deployment; is never hardcoded.
+- Session management relies entirely on HttpOnly cookies set by Drupal (not accessible from JavaScript).
+- CSRF tokens are fetched fresh from the backend before each state-changing request.
+- File upload validation:
+  - Maximum file size per file: 5 MB (client-side pre-check for UX).
+  - Server-side validation is authoritative for final validation and security checks.
