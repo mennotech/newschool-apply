@@ -68,12 +68,12 @@
   - Google
   - Microsoft
 - Uses Drupal session cookies instead of frontend token management.
-- Stores basic authenticated user data in `sessionStorage` for session restore.
+- Stores basic authenticated user data in `sessionStorage` for session restore. Only non-sensitive user identity data (uid, display name, roles) is stored — never tokens, passwords, or credentials.
 - On session restore, revalidates the session against Drupal's `/user/login_status` endpoint before trusting the cached user.
 - If an authenticated backend session exists but no local auth state is present (e.g. user logged in via Drupal admin UI), the frontend **bootstraps a lightweight user object** from the backend session automatically.
 - If a stale Drupal session causes a login failure (403), frontend attempts a logout cleanup and retries once.
 - Logout sends a GET request to `/user/logout?_format=json&token={logoutToken}` with the logout token obtained at login time.
-- For backend-bootstrapped sessions (where no login response was received), the logout token is recovered at logout time via `getLogoutToken()`.
+- For backend-bootstrapped sessions (where no login response was received), the logout token is recovered at logout time via `getLogoutToken()`, which calls `GET /api/session/info?_format=json` to retrieve the logout token for the active Drupal session.
 - Local auth state is only cleared after a **successful** server-side logout. If the server logout fails, local state is preserved so the user can retry.
 - A CSRF token is fetched from `/session/token` and sent as `X-CSRF-Token` for all state-changing API requests.
 
@@ -85,6 +85,7 @@
 | `/user/logout?_format=json&token={token}` | GET | Invalidate Drupal session; requires `token` query param |
 | `/user/login_status?_format=json` | GET | Returns `1` (authenticated) or `0`; used for session verification |
 | `/session/token` | GET | Returns CSRF token for state-changing requests |
+| `/api/session/info?_format=json` | GET | Returns current user data and logout token for bootstrapped sessions |
 
 ## Registration Features
 

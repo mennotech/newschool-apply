@@ -13,7 +13,7 @@
 - Backend image is built from `php:8.2-apache-bookworm`.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Drush is installed and used for install-time/bootstrap operations.
-- Drush should added to the docker image path for easy testing
+- Drush should be added to the docker image path for easy testing
 - Stripe CLI is installed in the backend image for local webhook testing.
 - Required PHP extensions for Drupal and media handling are installed, including:
   - `pdo_sqlite`
@@ -81,6 +81,10 @@
   - `GET /session/token`
 - Session invalidation uses Drupal logout token flow:
   - `GET /user/logout?_format=json&token={logoutToken}`
+- Backend must expose a session info endpoint that returns the logout token for the active session so the frontend can perform logout after a bootstrapped session (one where no `/user/login` response was received by the frontend):
+  - `GET /api/session/info?_format=json` returning at minimum `{ logout_token, current_user: { uid, name, mail, roles } }`
+  - Endpoint is authenticated; returns 403 for unauthenticated requests
+  - Used by `getLogoutToken()` in the frontend API utility
 
 ### Session And Auth Endpoints
 
@@ -90,6 +94,7 @@
 | `/user/logout?_format=json&token={token}` | GET | Invalidate authenticated Drupal session |
 | `/user/login_status?_format=json` | GET | Return `1` or `0` for current session auth state |
 | `/session/token` | GET | Return CSRF token for state-changing requests |
+| `/api/session/info?_format=json` | GET | Return current user data and logout token for bootstrapped sessions |
 
 ## Bundle Type Catalog
 
@@ -205,7 +210,6 @@
   - `document` -> `application`
   - `application` -> `payment` (via payment module)
 - Backend enforces auth and CSRF requirements for mutating operations.
-- JSON:API remains enabled and writable for authenticated requests.
 - The backend data model expects JSON:API consumers to:
   - create and update reusable `person` records
   - create and update reusable `address` records
