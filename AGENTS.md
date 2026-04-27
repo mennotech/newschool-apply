@@ -11,6 +11,7 @@ This repository uses AI-assisted development under strict architectural, securit
 
 - Work in `/frontend/` for all React UI changes.
 - Work in `/backend/` for all Drupal configuration, initialization scripts, and the Dockerfile.
+- In the backend container, Drush is available at `/var/www/html/vendor/bin/drush` and is not on `PATH` by default.
 - **Never move business logic from `/backend/` to `/frontend/`.** If a feature requires new logic, implement it in Drupal first.
 - The backend defaults to **SQLite** for lightweight local development and testing. Do not change the database engine without maintainer approval.
 
@@ -78,8 +79,10 @@ All authentication and identity verification are handled by **Drupal** – this 
   - *No custom OAuth flows or identity libraries*: Do not add OAuth/OIDC client libraries (e.g., Auth0, AWS Cognito, etc.) to the frontend. The app should never directly handle OAuth exchanges – that’s Drupal’s job.  
   - *No token management*: The frontend must not generate, inspect, or store JWTs or any access/refresh tokens. For example, do not parse a token to get user info; instead, ask the backend for user info.  
   - *No auth logic duplication*: Do not implement things like password strength checks beyond basic UI hints, two-factor auth flows, etc., in the frontend without direction – Drupal will handle required auth workflows.  
-- **Post-Authentication**: A successful authentication in Drupal only verifies identity. **Authorization** (what the user can do or see) is still entirely enforced by Drupal based on roles/permissions. The frontend should adjust its UI based on data from Drupal (e.g., whether a certain API returns data or a 403 Forbidden) rather than its own logic.
-
+- **Post-Authentication**: A successful authentication in Drupal only verifies identity. **Authorization** (what the user can do or see) is still entirely enforced by Drupal based on roles/permissions. The frontend should adjust its UI based on data from Drupal (e.g., whether a certain API returns data or a 403 Forbidden) rather than its own logic.- **Session Verification**: To check whether a Drupal session is still active, call `GET /user/login_status?_format=json`. This returns `1` (authenticated) or `0` and is safe for all users regardless of role. Do **not** use a JSON:API user entity query (e.g. `/jsonapi/user/user/{id}`) for session checking — those are permission-sensitive and may return 403 for perfectly valid sessions, causing false session expiry.
+- **Backend-Session Bootstrap**: If `login_status` returns `1` but the frontend has no local auth state (e.g. the user authenticated via the Drupal admin UI in the same browser), the frontend should bootstrap a lightweight user object from the active session rather than forcing a redundant re-login.
+- **Logout Token (not CSRF token)**: Drupal's logout endpoint is `GET /user/logout?_format=json&token={logoutToken}`. The `token` query parameter is the `logout_token` value returned in the login response body — it is **not** the CSRF token from `/session/token`. Drupal returns a misleading 403 with the message "csrf_token URL query argument is missing" when the logout token is absent or wrong; do not interpret this as a CSRF problem.
+- **Logout State Discipline**: Only clear frontend auth state (user, token) after receiving a **successful** server-side logout response. If the server logout fails (network error, bad token, etc.), preserve local state so the user remains logged in and can retry. Do not optimistically clear state before the server confirms.
 *Example*: For Google login, **Compliant**: redirect the user to Drupal’s Google OAuth login page (Drupal handles the OAuth handshake and sets its session cookie upon success). **Non-compliant**: use a JavaScript OAuth client (or Google’s JS API) in the frontend to obtain Google tokens and then manually call backend endpoints with those tokens – this circumvents Drupal’s controlled auth process and is not allowed.
 
 ## 4. **User Accounts and Roles**  
@@ -182,13 +185,16 @@ To maintain quality, any significant logic should be accompanied by tests. Testi
 ## 13. **AI Agent Responsibilities and Limitations**  
 AI coding agents are used to assist with development. They **must adhere to these same rules** and some additional constraints:
 
-- **What AI Agents Should Do**:  
-  - Generate or update **React components** following the project’s patterns (without altering architecture).  
+- **What AI Agents Should Do**:
+  - **Consult Feature Documentation**: Before starting any feature work, review [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) and [BACKEND-FEATURES.md](BACKEND-FEATURES.md) to understand what features already exist and avoid duplication.  
+  - **Update Feature Documentation**: Whenever a feature is added, removed, modified, or renamed, the AI agent **must update the corresponding features document** (frontend or backend). Feature documentation should always reflect the actual implemented state. Update immediately after implementing the feature, not as an afterthought.  
+  - Generate or update **React components** following the project's patterns (without altering architecture).
   - Write **integration code** to connect the frontend with Drupal’s APIs (e.g., fetching data, submitting forms, handling responses), consistent with API specs.  
   - Create **UI flows** as specified by requirements, ensuring they align with backend-driven logic (for example, implement the screens and navigation for a multi-step form, but not the decision on skipping a step unless told via API).  
   - Produce **tests** for new logic, when applicable, as part of the deliverable (see Testing Expectations above).  
 
 - **What AI Agents Must NOT Do**:  
+  - **Forget Documentation**: Do not implement features without updating the corresponding [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) or [BACKEND-FEATURES.md](BACKEND-FEATURES.md) file. Feature documentation is critical for maintainability and must be kept in sync with the code. A feature is not "done" until its documentation is updated.  
   - **Change the Architecture**: Do not propose moving logic to the frontend or introducing new layers that conflict with the established Drupal backend + React frontend division.  
   - **Introduce New Patterns or Tech**: Don’t spontaneously add state management libraries, new frameworks, or radically different coding patterns that haven’t been used in the project. Follow the existing style and approaches unless the maintainers request a change.  
   - **Add Dependencies**: As per the dependency policy, the AI should not decide to pull in a new library (for instance, for date handling, form management, etc.) on its own. Use the tools already available in the project or vanilla JS/React capabilities.  
