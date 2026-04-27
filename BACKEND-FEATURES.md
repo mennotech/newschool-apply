@@ -25,10 +25,12 @@
 
 - Container startup runs `backend/init.sh` before Apache foreground process.
 - Startup script ensures:
-  - `sites/default/files` exists and is writable.
-  - `settings.php` exists.
+  - `sites/default/files` exists and is owned by `www-data:www-data` with permissions `755`. Never set this directory to `777`; world-writable directories are a security risk.
+  - `settings.php` exists and is written during first-time setup.
+  - After `settings.php` is written, its permissions are locked to `444` (read-only for all) so the web server cannot modify it. This is a Drupal security requirement.
   - SQLite database configuration is present in `settings.php`.
   - Config sync directory is set to `/var/www/html/config/sync`.
+- The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Only the `sites/default/files` directory requires web server write access.
 - Fresh installs are automatic when no valid Drupal SQLite schema is detected.
 - Installation uses configured admin credentials from environment variables.
 - Required modules are enabled during install, including:
