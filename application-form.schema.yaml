@@ -1,292 +1,388 @@
-version: 1
-form_id: home_school_partial_programming_application
-name: Home School Partial Programming Application
-drupal:
-  entity_type: node
-  bundle: application
-  bundle_label: Application
-  bundle_description: School application submitted by a parent on behalf of a student
-sections:
-  - id: section_1
-    title: Student Information
-    description: Student identity, demographics, and address details.
-    fields:
-      - key: student_first_name
-        label: First Name
-        type: text
-        required: true
-      - key: student_middle_name
-        label: Middle Name
-        type: text
-        required: false
-      - key: student_last_name
-        label: Last Name
-        type: text
-        required: true
-      - key: student_preferred_name
-        label: Preferred Name
-        type: text
-        required: false
-      - key: student_gender
-        label: Gender
-        type: radio
-        required: true
-        options: [male, female]
-      - key: student_birth_date
-        label: Birth Date
-        type: date
-        required: true
-      - key: student_current_grade
-        label: Current Grade
-        type: select
-        required: true
-      - key: student_applying_for_grade
-        label: Applying For Grade
-        type: select
-        required: true
-      - key: primary_home_phone
-        label: Primary / Home Phone Number
-        type: phone
-        required: true
-      - key: physical_address
-        label: Physical Address
-        type: address_reference
-        description: Reference to the student physical address node
-        required: true
-      - key: mailing_address_differs
-        label: Is Mailing Address Different Than Physical Address?
-        type: radio
-        required: true
-        options: [yes, no]
-      - key: mailing_address
-        label: Mailing Address
-        type: address_reference
-        description: Reference to the student mailing address node
-        required: false
-      - key: citizenship_status
-        label: Citizenship Status
-        type: radio
-        required: true
-        options:
-          - canadian_citizen
-          - permanent_resident
-          - refugee_claimant
-          - study_permit
-          - other
-      - key: attended_mb_school_before
-        label: Have You Attended a Manitoba School in the Past?
-        type: radio
-        required: true
-        options: [yes, no]
-      - key: church_attending
-        label: Church Attending
-        type: text
-        required: false
-      - key: denomination
-        label: Denomination
-        type: text
-        required: false
-      - key: section_1_reviewed
-        label: Section 1 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: application
+      label: Application
+      description: Reusable application metadata and cross-form relationships shared by all application types.
+      kind: reusable_application
+      sections:
+        - id: application_identity
+          title: Application Identity
+          description: Shared workflow and ownership metadata for all application records.
+          fields:
+            - key: application_status
+              label: Application Status
+              type: select
+              required: true
+              options: [draft, submitted, under_review, accepted, not_accepted]
+            - key: submitted_at
+              label: Submitted At
+              type: date
+              required: false
+            - key: student_profile
+              label: Student Profile
+              type: student_profile_reference
+              required: true
+            - key: primary_guardian_person
+              label: Primary Guardian
+              type: person_reference
+              required: true
+            - key: secondary_guardian_person
+              label: Secondary Guardian
+              type: person_reference
+              required: false
+            - key: household_relationship_status
+              label: Student's Parents Are
+              type: radio
+              required: true
+              options: [married, divorced, separated, other]
+            - key: student_lives_with
+              label: Student Lives With
+              type: radio
+              required: true
+              options: [both_parents, mother, father, shared_custody, other]
+            - key: custody_description
+              label: Custody Description
+              type: radio
+              required: true
+              options: [joint, mother, father, other]
+        - id: application_review
+          title: Application Review Tracking
+          description: Reusable review-state markers for all application forms.
+          fields:
+            - key: section_1_reviewed
+              label: Section 1 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: section_2_reviewed
+              label: Section 2 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: section_3_reviewed
+              label: Section 3 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: section_4_reviewed
+              label: Section 4 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: section_5_reviewed
+              label: Section 5 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: section_6_reviewed
+              label: Section 6 Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+    - machine_name: person
+      label: Person
+      description: Reusable PowerSchool-style person/contact record for parents, guardians, and emergency contacts.
+      kind: supporting_record
+      sections:
+        - id: person_identity
+          title: Person Identity
+          description: Canonical identity and relationship details for a contact.
+          fields:
+            - key: given_name
+              label: Given Name
+              type: text
+              required: true
+            - key: middle_name
+              label: Middle Name
+              type: text
+              required: false
+            - key: surname
+              label: Surname
+              type: text
+              required: true
+            - key: preferred_name
+              label: Preferred Name
+              type: text
+              required: false
+            - key: relationship_to_student
+              label: Relationship To Student
+              type: select
+              required: true
+              options: [mother, father, guardian, grandparent, emergency_contact, other]
+            - key: workplace
+              label: Workplace
+              type: text
+              required: false
+        - id: person_contact_methods
+          title: Contact Methods
+          description: PowerSchool-style typed contact methods stored on the reusable person record.
+          fields:
+            - key: email_addresses
+              label: Email Addresses
+              type: typed_contact_list
+              contact_kind: email
+              required: false
+              cardinality: -1
+            - key: phone_numbers
+              label: Phone Numbers
+              type: typed_contact_list
+              contact_kind: phone
+              required: false
+              cardinality: -1
+        - id: person_addresses
+          title: Address Links
+          description: Reusable address references for this person.
+          fields:
+            - key: primary_address
+              label: Primary Address
+              type: address_reference
+              required: false
+            - key: mailing_address_differs
+              label: Mailing Address Different From Primary Address
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: mailing_address
+              label: Mailing Address
+              type: address_reference
+              required: false
+    - machine_name: address
+      label: Address
+      description: Reusable address record available for applications and people.
+      kind: supporting_record
+      sections:
+        - id: address_core
+          title: Address
+          description: Canonical reusable postal address fields.
+          fields:
+            - key: address_line_1
+              label: Address Line 1
+              type: text
+              required: true
+            - key: address_line_2
+              label: Address Line 2
+              type: text
+              required: false
+            - key: city
+              label: City
+              type: text
+              required: true
+            - key: state_province
+              label: Province / State
+              type: text
+              required: true
+            - key: postal_code
+              label: Postal / Zip Code
+              type: text
+              required: true
 
-  - id: section_2
-    title: Health Information
-    description: Student health card and medical details.
-    fields:
-      - key: mb_health_number_9_digit
-        label: 'MB Health # - 9 Digit'
-        type: text
-        required: true
-      - key: mb_health_number_6_digit
-        label: 'MB Health # - 6 Digit'
-        type: text
-        required: true
-      - key: emergency_contact_name
-        label: Emergency Contact Name
-        type: text
-        required: true
-      - key: emergency_contact_phone
-        label: Emergency Contact Phone
-        type: phone
-        required: true
-      - key: allergies
-        label: Allergies
-        type: textarea
-        required: false
-      - key: medications_used_frequently
-        label: Medications Used Frequently
-        type: textarea
-        required: false
-      - key: medical_restrictions
-        label: Medical Restrictions
-        type: textarea
-        required: false
-      - key: section_2_reviewed
-        label: Section 2 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
+  application_bundles:
+    - machine_name: application_partial_programming
+      form_id: home_school_partial_programming_application
+      label: Home School Partial Programming Application
+      description: Partial programming application submitted by a parent on behalf of a student.
+      kind: application_form
+      base_bundle: application
+      sections:
+        - id: student_information
+          title: Student Information
+          description: Student identity, demographics, and address details specific to this application.
+          fields:
+            - key: student_first_name
+              label: First Name
+              type: text
+              required: true
+            - key: student_middle_name
+              label: Middle Name
+              type: text
+              required: false
+            - key: student_last_name
+              label: Last Name
+              type: text
+              required: true
+            - key: student_preferred_name
+              label: Preferred Name
+              type: text
+              required: false
+            - key: student_gender
+              label: Gender
+              type: radio
+              required: true
+              options: [male, female]
+            - key: student_birth_date
+              label: Birth Date
+              type: date
+              required: true
+            - key: student_current_grade
+              label: Current Grade
+              type: select
+              required: true
+            - key: student_applying_for_grade
+              label: Applying For Grade
+              type: select
+              required: true
+            - key: primary_home_phone
+              label: Primary / Home Phone Number
+              type: phone
+              required: true
+            - key: physical_address
+              label: Physical Address
+              type: address_reference
+              required: true
+            - key: mailing_address_differs
+              label: Is Mailing Address Different Than Physical Address?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: mailing_address
+              label: Mailing Address
+              type: address_reference
+              required: false
+            - key: citizenship_status
+              label: Citizenship Status
+              type: radio
+              required: true
+              options:
+                - canadian_citizen
+                - permanent_resident
+                - refugee_claimant
+                - study_permit
+                - other
+            - key: attended_mb_school_before
+              label: Have You Attended a Manitoba School in the Past?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: church_attending
+              label: Church Attending
+              type: text
+              required: false
+            - key: denomination
+              label: Denomination
+              type: text
+              required: false
+        - id: health_information
+          title: Health Information
+          description: Student health card and medical details.
+          fields:
+            - key: mb_health_number_9_digit
+              label: 'MB Health # - 9 Digit'
+              type: text
+              required: true
+            - key: mb_health_number_6_digit
+              label: 'MB Health # - 6 Digit'
+              type: text
+              required: true
+            - key: emergency_contact_person
+              label: Emergency Contact
+              type: person_reference
+              required: false
+            - key: allergies
+              label: Allergies
+              type: textarea
+              required: false
+            - key: medications_used_frequently
+              label: Medications Used Frequently
+              type: textarea
+              required: false
+            - key: medical_restrictions
+              label: Medical Restrictions
+              type: textarea
+              required: false
+        - id: parent_guardian_information
+          title: Parent / Guardian Information
+          description: Parent and guardian records are selected from reusable Person records.
+          fields:
+            - key: primary_guardian_relationship_notes
+              label: Primary Guardian Notes
+              type: textarea
+              required: false
+            - key: secondary_guardian_relationship_notes
+              label: Secondary Guardian Notes
+              type: textarea
+              required: false
+        - id: additional_support_declaration
+          title: Additional Support Declaration
+          description: Educational and psychological support background.
+          fields:
+            - key: academic_support_details
+              label: Academic Support
+              type: textarea
+              required: false
+            - key: diagnosis_assessments_details
+              label: Diagnosis / Assessments
+              type: textarea
+              required: false
+            - key: psychological_support_details
+              label: Psychological Support
+              type: textarea
+              required: false
+            - key: support_declaration_reviewed
+              label: Support Declaration Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+        - id: parent_questionnaire
+          title: Parent Questionnaire
+          description: Parent narrative responses.
+          fields:
+            - key: questionnaire_contact_person
+              label: Questionnaire Contact Person
+              type: person_reference
+              required: true
+            - key: christian_testimony
+              label: Christian Testimony Description
+              type: textarea
+              required: true
+            - key: school_interest_reason
+              label: Reason for Wanting Child to Attend Steinbach Christian School
+              type: textarea
+              required: true
+        - id: statement_of_commitment
+          title: Statement of Commitment
+          description: Consent acknowledgement and signature.
+          fields:
+            - key: parent_guardian_signature
+              label: Parent/Guardian Signature
+              type: signature
+              required: true
+    - machine_name: application_full_early_years
+      form_id: full_early_years_application
+      label: Full Early Years Application
+      description: Reserved bundle for a future full early years application.
+      kind: application_form
+      base_bundle: application
+      sections: []
+    - machine_name: application_full_middle_years
+      form_id: full_middle_years_application
+      label: Full Middle Years Application
+      description: Reserved bundle for a future full middle years application.
+      kind: application_form
+      base_bundle: application
+      sections: []
+    - machine_name: application_full_senior_years
+      form_id: full_senior_years_application
+      label: Full Senior Years Application
+      description: Reserved bundle for a future full senior years application.
+      kind: application_form
+      base_bundle: application
+      sections: []
 
-  - id: section_3
-    title: Parent / Guardian Information
-    description: Parent identity, contact, and custody context.
-    fields:
-      - key: father_surname
-        label: Father's Surname
-        type: text
-        required: false
-      - key: father_given_name
-        label: Father's Given Name
-        type: text
-        required: false
-      - key: father_address_same_as_student
-        label: Father's Address Same as Student
-        type: radio
-        required: false
-        options: [yes, no]
-      - key: father_address
-        label: Guardian 1 Address
-        type: address_reference
-        description: Reference to guardian 1 (father) address node
-        required: false
-      - key: father_workplace
-        label: Father's Workplace
-        type: text
-        required: false
-      - key: father_work_number
-        label: Father's Work Number
-        type: phone
-        required: false
-      - key: father_cell_number
-        label: Father's Cell Number
-        type: phone
-        required: false
-      - key: father_email
-        label: Father's Email
-        type: email
-        required: false
-      - key: mother_surname
-        label: Mother's Surname
-        type: text
-        required: false
-      - key: mother_given_name
-        label: Mother's Given Name
-        type: text
-        required: false
-      - key: mother_address_same_as_student
-        label: Mother's Address Same as Student
-        type: radio
-        required: false
-        options: [yes, no]
-      - key: mother_address
-        label: Guardian 2 Address
-        type: address_reference
-        description: Reference to guardian 2 (mother) address node
-        required: false
-      - key: mother_workplace
-        label: Mother's Workplace
-        type: text
-        required: false
-      - key: mother_work_number
-        label: Mother's Work Number
-        type: phone
-        required: false
-      - key: mother_cell_number
-        label: Mother's Cell Number
-        type: phone
-        required: false
-      - key: mother_email
-        label: Mother's Email
-        type: email
-        required: false
-      - key: parents_relationship_status
-        label: Student's Parents Are
-        type: radio
-        required: true
-        options: [married, divorced, separated, other]
-      - key: student_lives_with
-        label: Student Lives With
-        type: radio
-        required: true
-        options: [both_parents, mother, father, shared_custody, other]
-      - key: custody_description
-        label: Custody Description
-        type: radio
-        required: true
-        options: [joint, mother, father, other]
-      - key: section_3_reviewed
-        label: Section 3 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
-
-  - id: section_4
-    title: Additional Support Declaration
-    description: Educational and psychological support background.
-    fields:
-      - key: academic_support_details
-        label: Academic Support
-        type: textarea
-        required: false
-      - key: diagnosis_assessments_details
-        label: Diagnosis / Assessments
-        type: textarea
-        required: false
-      - key: psychological_support_details
-        label: Psychological Support
-        type: textarea
-        required: false
-      - key: support_declaration_reviewed
-        label: Support Declaration Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
-      - key: section_4_reviewed
-        label: Section 4 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
-
-  - id: section_5
-    title: Parent Questionnaire
-    description: Parent narrative responses.
-    fields:
-      - key: parent_name
-        label: Name of Parent
-        type: text
-        required: true
-      - key: christian_testimony
-        label: Christian Testimony Description
-        type: textarea
-        required: true
-      - key: school_interest_reason
-        label: Reason for Wanting Child to Attend Steinbach Christian School
-        type: textarea
-        required: true
-      - key: section_5_reviewed
-        label: Section 5 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
-
-  - id: section_6
-    title: Statement of Commitment
-    description: Consent acknowledgement and signature.
-    fields:
-      - key: parent_guardian_signature
-        label: Parent/Guardian Signature
-        type: signature
-        required: true
-      - key: section_6_reviewed
-        label: Section 6 Reviewed
-        type: radio
-        required: false
-        options: [yes, no]
+ui:
+  record_library:
+    enabled: true
+    routes:
+      people: /records/people
+      addresses: /records/addresses
+    guidance:
+      - Authenticated users can browse reusable Person and Address records before starting an application.
+      - Application flows should support selecting an existing Person or Address record or creating one inline without leaving the step.
+      - Guardian editing should favor friendly cards, typed contact chips, and inline validation for person reuse.
 
 notes:
-  - This schema is intentionally high-level and designed for later Drupal field mapping and frontend rendering.
-  - Address references assume the reusable Drupal address node type already exists and only define the application-level reference fields.
-  - Use backend validation rules as the final source of truth for required fields and business logic.
+  - The application bundle now contains only reusable application-level fields and relationship references shared by all application types.
+  - Each concrete application type has its own dedicated bundle so future full-program forms can diverge without overloading the shared application schema.
+  - Person records replace flattened father and mother fields and store typed email and phone entries using the format type:value, such as work:jdoe@contoso.com.
+  - Person address fields are reference fields to the reusable Address bundle.
+  - Backend validation remains the final source of truth for required fields, contact formatting, and workflow rules.

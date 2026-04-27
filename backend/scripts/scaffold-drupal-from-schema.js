@@ -31,6 +31,11 @@ function parseBool(value) {
   return Boolean(v);
 }
 
+function parseNumber(value, fallback = 0) {
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function parseInlineOptions(value) {
   const m = value.match(/^\[(.*)\]$/);
   if (!m) return null;
@@ -39,7 +44,7 @@ function parseInlineOptions(value) {
   return inner.split(',').map((item) => unquote(item.trim()));
 }
 
-function parseSchema(text) {
+function parseLegacySchema(text) {
   const lines = text.replace(/\r\n/g, '\n').split('\n');
 
   const schema = {
@@ -177,6 +182,251 @@ function parseSchema(text) {
   return schema;
 }
 
+function parseCatalogSchema(text) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+
+  const schema = {
+    version: 2,
+    catalog: {
+      reusable_bundles: [],
+      application_bundles: [],
+    },
+    notes: [],
+  };
+
+  let topLevelSection = null;
+  let currentBundleListName = null;
+  let currentBundle = null;
+  let currentSection = null;
+  let currentField = null;
+  let readingFieldOptions = false;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i];
+    if (!raw.trim() || raw.trim().startsWith('#')) continue;
+
+    const indent = raw.match(/^\s*/)[0].length;
+    const line = raw.trim();
+
+    if (indent === 0) {
+      readingFieldOptions = false;
+      currentBundleListName = null;
+      currentBundle = null;
+      currentSection = null;
+      currentField = null;
+
+      if (line.startsWith('version:')) {
+        schema.version = parseNumber(line.slice('version:'.length), 2);
+        continue;
+      }
+
+      if (line === 'catalog:') {
+        topLevelSection = 'catalog';
+        continue;
+      }
+
+      if (line === 'notes:') {
+        topLevelSection = 'notes';
+        continue;
+      }
+
+      topLevelSection = null;
+      continue;
+    }
+
+    if (topLevelSection === 'notes') {
+      if (indent === 2 && line.startsWith('- ')) {
+        schema.notes.push(unquote(line.slice(2)));
+      }
+      continue;
+    }
+
+    if (topLevelSection !== 'catalog') continue;
+
+    if (readingFieldOptions && indent === 16 && line.startsWith('- ')) {
+      currentField.options.push(unquote(line.slice(2)));
+      continue;
+    }
+
+    if (readingFieldOptions && indent <= 14) {
+      readingFieldOptions = false;
+    }
+
+    if (indent === 2 && (line === 'reusable_bundles:' || line === 'application_bundles:')) {
+      currentBundleListName = line.slice(0, -1);
+      currentBundle = null;
+      currentSection = null;
+      currentField = null;
+      continue;
+    }
+
+    if (!currentBundleListName) continue;
+
+    if (indent === 4 && line.startsWith('- machine_name:')) {
+      currentBundle = {
+        machine_name: unquote(line.slice('- machine_name:'.length)),
+        label: '',
+        description: '',
+        kind: '',
+        form_id: '',
+        base_bundle: '',
+        sections: [],
+      };
+      schema.catalog[currentBundleListName].push(currentBundle);
+      currentSection = null;
+      currentField = null;
+      continue;
+    }
+
+    if (!currentBundle) continue;
+
+    if (indent === 6 && line.startsWith('label:')) {
+      currentBundle.label = unquote(line.slice('label:'.length));
+      continue;
+    }
+    if (indent === 6 && line.startsWith('description:')) {
+      currentBundle.description = unquote(line.slice('description:'.length));
+      continue;
+    }
+    if (indent === 6 && line.startsWith('kind:')) {
+      currentBundle.kind = unquote(line.slice('kind:'.length));
+      continue;
+    }
+    if (indent === 6 && line.startsWith('form_id:')) {
+      currentBundle.form_id = unquote(line.slice('form_id:'.length));
+      continue;
+    }
+    if (indent === 6 && line.startsWith('base_bundle:')) {
+      currentBundle.base_bundle = unquote(line.slice('base_bundle:'.length));
+      continue;
+    }
+    if (indent === 6 && line.startsWith('sections:')) {
+      continue;
+    }
+
+    if (indent === 8 && line.startsWith('- id:')) {
+      currentSection = {
+        id: unquote(line.slice('- id:'.length)),
+        title: '',
+        description: '',
+        fields: [],
+      };
+      currentBundle.sections.push(currentSection);
+      currentField = null;
+      continue;
+    }
+
+    if (!currentSection) continue;
+
+    if (indent === 10 && line.startsWith('title:')) {
+      currentSection.title = unquote(line.slice('title:'.length));
+      continue;
+    }
+    if (indent === 10 && line.startsWith('description:')) {
+      currentSection.description = unquote(line.slice('description:'.length));
+      continue;
+    }
+    if (indent === 10 && line.startsWith('fields:')) {
+      continue;
+    }
+
+    if (indent === 12 && line.startsWith('- key:')) {
+      currentField = {
+        key: unquote(line.slice('- key:'.length)),
+        label: '',
+        type: 'text',
+        required: false,
+        options: [],
+        description: '',
+      };
+      currentSection.fields.push(currentField);
+      continue;
+    }
+
+    if (!currentField || indent !== 14) continue;
+
+    if (line.startsWith('label:')) {
+      currentField.label = unquote(line.slice('label:'.length));
+      continue;
+    }
+    if (line.startsWith('type:')) {
+      currentField.type = unquote(line.slice('type:'.length));
+      continue;
+    }
+    if (line.startsWith('required:')) {
+      currentField.required = parseBool(line.slice('required:'.length));
+      continue;
+    }
+    if (line.startsWith('description:')) {
+      currentField.description = unquote(line.slice('description:'.length));
+      continue;
+    }
+    if (line.startsWith('contact_kind:')) {
+      currentField.contact_kind = unquote(line.slice('contact_kind:'.length));
+      continue;
+    }
+    if (line.startsWith('cardinality:')) {
+      currentField.cardinality = parseNumber(line.slice('cardinality:'.length), 1);
+      continue;
+    }
+    if (line.startsWith('options:')) {
+      const rawOptions = line.slice('options:'.length).trim();
+      if (!rawOptions) {
+        readingFieldOptions = true;
+        currentField.options = [];
+      } else {
+        const parsed = parseInlineOptions(rawOptions);
+        currentField.options = parsed || [];
+      }
+    }
+  }
+
+  return schema;
+}
+
+function parseSchema(text) {
+  if (text.includes('catalog:') && text.includes('application_bundles:')) {
+    return parseCatalogSchema(text);
+  }
+
+  return parseLegacySchema(text);
+}
+
+function normalizeSchema(parsedSchema) {
+  if (parsedSchema.catalog) {
+    const reusableBundles = parsedSchema.catalog.reusable_bundles || [];
+    const applicationBundles = parsedSchema.catalog.application_bundles || [];
+
+    return {
+      version: parsedSchema.version || 2,
+      bundles: [...reusableBundles, ...applicationBundles].map((bundle) => ({
+        machine_name: normalizeMachineName(bundle.machine_name || bundle.label || 'application'),
+        label: bundle.label || bundle.machine_name || 'Application',
+        description: bundle.description || 'Generated from form schema catalog',
+        kind: bundle.kind || 'bundle',
+        form_id: bundle.form_id || '',
+        base_bundle: bundle.base_bundle ? normalizeMachineName(bundle.base_bundle) : '',
+        sections: Array.isArray(bundle.sections) ? bundle.sections : [],
+      })),
+    };
+  }
+
+  return {
+    version: parsedSchema.version || 1,
+    bundles: [
+      {
+        machine_name: normalizeMachineName(parsedSchema.drupal.bundle || 'application'),
+        label: parsedSchema.drupal.bundle_label || parsedSchema.name || 'Application',
+        description: parsedSchema.drupal.bundle_description || parsedSchema.name || 'Generated application content type',
+        kind: 'application_form',
+        form_id: parsedSchema.form_id || '',
+        base_bundle: '',
+        sections: Array.isArray(parsedSchema.sections) ? parsedSchema.sections : [],
+      },
+    ],
+  };
+}
+
 function normalizeMachineName(value) {
   return value
     .toLowerCase()
@@ -241,7 +491,16 @@ function mapFieldType(field) {
     return {
       storageType: 'string',
       module: 'core',
-      storageSettings: { max_length: 32, is_ascii: false, case_sensitive: false },
+      storageSettings: { max_length: 64, is_ascii: false, case_sensitive: false },
+      instanceSettings: {},
+    };
+  }
+
+  if (type === 'typed_contact_list') {
+    return {
+      storageType: 'string',
+      module: 'core',
+      storageSettings: { max_length: 255, is_ascii: false, case_sensitive: false },
       instanceSettings: {},
     };
   }
@@ -266,6 +525,52 @@ function mapFieldType(field) {
       },
       translatable: true,
       configDependencies: ['node.type.address'],
+    };
+  }
+
+  if (type === 'person_reference') {
+    return {
+      storageType: 'entity_reference',
+      module: 'core',
+      storageSettings: { target_type: 'node' },
+      instanceSettings: {
+        handler: 'default:node',
+        handler_settings: {
+          target_bundles: {
+            person: 'person',
+          },
+          sort: {
+            field: '_none',
+          },
+          auto_create: false,
+          auto_create_bundle: '',
+        },
+      },
+      translatable: true,
+      configDependencies: ['node.type.person'],
+    };
+  }
+
+  if (type === 'student_profile_reference') {
+    return {
+      storageType: 'entity_reference',
+      module: 'core',
+      storageSettings: { target_type: 'node' },
+      instanceSettings: {
+        handler: 'default:node',
+        handler_settings: {
+          target_bundles: {
+            student_profile: 'student_profile',
+          },
+          sort: {
+            field: '_none',
+          },
+          auto_create: false,
+          auto_create_bundle: '',
+        },
+      },
+      translatable: true,
+      configDependencies: ['node.type.student_profile'],
     };
   }
 
@@ -331,16 +636,16 @@ function toYaml(value, indent = 0) {
   return `${sp}${yamlScalar(value)}`;
 }
 
-function buildNodeTypeConfig(drupal, formName) {
+function buildNodeTypeConfig(bundle) {
   return {
     langcode: 'en',
     status: true,
     dependencies: {
       module: ['node'],
     },
-    name: drupal.bundle_label || 'Application',
-    type: drupal.bundle || 'application',
-    description: drupal.bundle_description || formName || 'Generated application content type',
+    name: bundle.label || 'Application',
+    type: bundle.machine_name || 'application',
+    description: bundle.description || 'Generated application content type',
     help: '',
     new_revision: false,
     preview_mode: 1,
@@ -348,7 +653,7 @@ function buildNodeTypeConfig(drupal, formName) {
   };
 }
 
-function buildStorageConfig(fieldName, mapping) {
+function buildStorageConfig(fieldName, mapping, field) {
   const deps = ['node'];
   if (mapping.module !== 'core') deps.push(mapping.module);
 
@@ -365,7 +670,7 @@ function buildStorageConfig(fieldName, mapping) {
     settings: mapping.storageSettings,
     module: mapping.module,
     locked: false,
-    cardinality: 1,
+    cardinality: Number.isInteger(field.cardinality) ? field.cardinality : 1,
     translatable: Boolean(mapping.translatable),
     indexes: {},
     persist_with_no_fields: false,
@@ -374,8 +679,13 @@ function buildStorageConfig(fieldName, mapping) {
 }
 
 function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
-  const required = bundle === 'application' ? false : Boolean(field.required);
+  const required = Boolean(field.required);
   const configDependencies = [`field.storage.node.${fieldName}`, `node.type.${bundle}`];
+
+  let description = field.description || (section ? `Section: ${section.title}` : '');
+  if (!description && field.type === 'typed_contact_list' && field.contact_kind) {
+    description = `Store one ${field.contact_kind} per line using type:value formatting.`;
+  }
 
   if (Array.isArray(mapping.configDependencies)) {
     configDependencies.push(...mapping.configDependencies);
@@ -392,7 +702,7 @@ function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
     entity_type: 'node',
     bundle,
     label: field.label,
-    description: field.description || (section ? `Section: ${section.title}` : ''),
+    description,
     required,
     translatable: false,
     default_value: {},
@@ -400,6 +710,32 @@ function buildInstanceConfig(bundle, fieldName, field, mapping, section) {
     settings: mapping.instanceSettings,
     field_type: mapping.storageType,
   };
+}
+
+function collectBundleFieldEntries(bundle, bundleMap, visited = new Set()) {
+  const bundleId = bundle.machine_name;
+  if (visited.has(bundleId)) {
+    throw new Error(`Circular base_bundle chain detected for bundle: ${bundleId}`);
+  }
+
+  const nextVisited = new Set(visited);
+  nextVisited.add(bundleId);
+
+  const inheritedEntries = [];
+  if (bundle.base_bundle) {
+    const baseBundle = bundleMap.get(bundle.base_bundle);
+    if (!baseBundle) {
+      throw new Error(`Bundle ${bundle.machine_name} references missing base_bundle ${bundle.base_bundle}`);
+    }
+
+    inheritedEntries.push(...collectBundleFieldEntries(baseBundle, bundleMap, nextVisited));
+  }
+
+  const ownEntries = (bundle.sections || []).flatMap((section) =>
+    (section.fields || []).map((field) => ({ section, field }))
+  );
+
+  return [...inheritedEntries, ...ownEntries];
 }
 
 function ensureDir(dirPath) {
@@ -420,49 +756,42 @@ function main() {
     process.exit(1);
   }
 
-  const schema = parseSchema(fs.readFileSync(schemaPath, 'utf8'));
-  if (!Array.isArray(schema.sections) || schema.sections.length === 0) {
-    console.error('No sections found in schema.');
-    process.exit(1);
-  }
-
-  const drupal = schema.drupal || {};
-  const entityType = drupal.entity_type || 'node';
-  const bundle = normalizeMachineName(drupal.bundle || 'application');
-
-  if (entityType !== 'node') {
-    console.error(`Only entity_type=node is supported in this scaffold script. Received: ${entityType}`);
+  const normalizedSchema = normalizeSchema(parseSchema(fs.readFileSync(schemaPath, 'utf8')));
+  if (!Array.isArray(normalizedSchema.bundles) || normalizedSchema.bundles.length === 0) {
+    console.error('No bundles found in schema.');
     process.exit(1);
   }
 
   ensureDir(outputDir);
 
-  const nodeTypeFile = path.join(outputDir, `node.type.${bundle}.yml`);
-  fs.writeFileSync(nodeTypeFile, `${toYaml(buildNodeTypeConfig(drupal, schema.name))}\n`, 'utf8');
-
+  const bundleMap = new Map(normalizedSchema.bundles.map((bundle) => [bundle.machine_name, bundle]));
   const writtenFields = new Set();
+  const writtenBundles = [];
 
-  schema.sections.forEach((section) => {
-    (section.fields || []).forEach((field) => {
+  normalizedSchema.bundles.forEach((bundle) => {
+    const nodeTypeFile = path.join(outputDir, `node.type.${bundle.machine_name}.yml`);
+    fs.writeFileSync(nodeTypeFile, `${toYaml(buildNodeTypeConfig(bundle))}\n`, 'utf8');
+    writtenBundles.push(bundle.machine_name);
+
+    collectBundleFieldEntries(bundle, bundleMap).forEach(({ section, field }) => {
       const fieldName = buildFieldName(field.key || field.label || 'field');
-      if (writtenFields.has(fieldName)) return;
-
       const mapping = mapFieldType(field);
-      const storage = buildStorageConfig(fieldName, mapping);
-      const instance = buildInstanceConfig(bundle, fieldName, field, mapping, section);
+      const storage = buildStorageConfig(fieldName, mapping, field);
+      const instance = buildInstanceConfig(bundle.machine_name, fieldName, field, mapping, section);
 
-      const storagePath = path.join(outputDir, `field.storage.node.${fieldName}.yml`);
-      const instancePath = path.join(outputDir, `field.field.node.${bundle}.${fieldName}.yml`);
+      if (!writtenFields.has(fieldName)) {
+        const storagePath = path.join(outputDir, `field.storage.node.${fieldName}.yml`);
+        fs.writeFileSync(storagePath, `${toYaml(storage)}\n`, 'utf8');
+        writtenFields.add(fieldName);
+      }
 
-      fs.writeFileSync(storagePath, `${toYaml(storage)}\n`, 'utf8');
+      const instancePath = path.join(outputDir, `field.field.node.${bundle.machine_name}.${fieldName}.yml`);
       fs.writeFileSync(instancePath, `${toYaml(instance)}\n`, 'utf8');
-
-      writtenFields.add(fieldName);
     });
   });
 
   console.log(`Generated Drupal scaffold config in: ${outputDir}`);
-  console.log(`Bundle: ${bundle}`);
+  console.log(`Bundles: ${writtenBundles.join(', ')}`);
   console.log(`Fields: ${writtenFields.size}`);
 }
 
