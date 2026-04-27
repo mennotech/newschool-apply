@@ -34,6 +34,18 @@
 - Mobile navigation uses a hamburger menu and closes automatically on route changes.
 - Active navigation state is highlighted based on the current route.
 
+## Styling and Layout
+
+- **CSS Approach:** Vanilla CSS (no UI framework required). Global styles in `frontend/src/index.css`.
+- **Layout:** Clean, minimal design with responsive mobile-first approach.
+- **Color Scheme:** Neutral, professional palette suitable for an educational institution. Primary action button color is used consistently across forms and CTAs.
+- **Spacing & Typography:** Consistent spacing scale and readable typography; headings use semantic HTML hierarchy (`<h1>` through `<h6>`).
+- **Form Styling:** Consistent form input styling with clear labels, focus states, and error states (via `aria-invalid` and error message display).
+- **Header:** Sticky/fixed header with logo/brand name on the left and navigation on the right. Mobile hamburger menu appears at breakpoint ~768px.
+- **Footer:** Simple footer with copyright and links
+- **Cards/Containers:** Subtle shadows and borders to visually separate sections; adequate whitespace for readability.
+- **Responsive:** Mobile-first CSS media queries for tablet and desktop layouts. All form pages stack vertically on mobile.
+
 ## Home Page
 
 - Landing page presents the application entry point.
