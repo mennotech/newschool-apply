@@ -185,13 +185,16 @@ To maintain quality, any significant logic should be accompanied by tests. Testi
 ## 13. **AI Agent Responsibilities and Limitations**  
 AI coding agents are used to assist with development. They **must adhere to these same rules** and some additional constraints:
 
-- **What AI Agents Should Do**:  
-  - Generate or update **React components** following the project’s patterns (without altering architecture).  
+- **What AI Agents Should Do**:
+  - **Consult Feature Documentation**: Before starting any feature work, review [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) and [BACKEND-FEATURES.md](BACKEND-FEATURES.md) to understand what features already exist and avoid duplication.  
+  - **Update Feature Documentation**: Whenever a feature is added, removed, modified, or renamed, the AI agent **must update the corresponding features document** (frontend or backend). Feature documentation should always reflect the actual implemented state. Update immediately after implementing the feature, not as an afterthought.  
+  - Generate or update **React components** following the project's patterns (without altering architecture).
   - Write **integration code** to connect the frontend with Drupal’s APIs (e.g., fetching data, submitting forms, handling responses), consistent with API specs.  
   - Create **UI flows** as specified by requirements, ensuring they align with backend-driven logic (for example, implement the screens and navigation for a multi-step form, but not the decision on skipping a step unless told via API).  
   - Produce **tests** for new logic, when applicable, as part of the deliverable (see Testing Expectations above).  
 
 - **What AI Agents Must NOT Do**:  
+  - **Forget Documentation**: Do not implement features without updating the corresponding [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) or [BACKEND-FEATURES.md](BACKEND-FEATURES.md) file. Feature documentation is critical for maintainability and must be kept in sync with the code. A feature is not "done" until its documentation is updated.  
   - **Change the Architecture**: Do not propose moving logic to the frontend or introducing new layers that conflict with the established Drupal backend + React frontend division.  
   - **Introduce New Patterns or Tech**: Don’t spontaneously add state management libraries, new frameworks, or radically different coding patterns that haven’t been used in the project. Follow the existing style and approaches unless the maintainers request a change.  
   - **Add Dependencies**: As per the dependency policy, the AI should not decide to pull in a new library (for instance, for date handling, form management, etc.) on its own. Use the tools already available in the project or vanilla JS/React capabilities.  
