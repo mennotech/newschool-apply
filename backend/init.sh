@@ -111,7 +111,9 @@ chmod 770 "${DB_DIR}"
 DRUSH_CMD="sudo -u www-data ${DRUSH} --root=${DRUPAL_ROOT}"
 
 drupal_is_installed() {
-  ${DRUSH_CMD} status --field=drupal-version >/dev/null 2>&1
+  local bootstrap
+  bootstrap="$(${DRUSH_CMD} status --field=bootstrap 2>/dev/null)"
+  [ "${bootstrap}" = "Successful" ]
 }
 
 if ! drupal_is_installed; then

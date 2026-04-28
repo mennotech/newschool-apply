@@ -199,11 +199,11 @@ function _newschool_payments_field_definitions() {
         'type'        => 'list_string',
         'settings'    => [
           'allowed_values' => [
-            ['value' => 'unpaid',   'label' => 'Unpaid'],
-            ['value' => 'pending',  'label' => 'Pending'],
-            ['value' => 'paid',     'label' => 'Paid'],
-            ['value' => 'failed',   'label' => 'Failed'],
-            ['value' => 'canceled', 'label' => 'Canceled'],
+            'unpaid'   => 'Unpaid',
+            'pending'  => 'Pending',
+            'paid'     => 'Paid',
+            'failed'   => 'Failed',
+            'canceled' => 'Canceled',
           ],
           'allowed_values_function' => '',
         ],
