@@ -447,7 +447,7 @@ function mapFieldType(field) {
     };
   }
 
-  if (type === 'student_profile_reference') {
+  if (type === 'student_reference') {
     return {
       storageType: 'entity_reference',
       module: 'core',
@@ -456,7 +456,7 @@ function mapFieldType(field) {
         handler: 'default:node',
         handler_settings: {
           target_bundles: {
-            student_profile: 'student_profile',
+            student: 'student',
           },
           sort: {
             field: '_none',
@@ -466,7 +466,7 @@ function mapFieldType(field) {
         },
       },
       translatable: true,
-      configDependencies: ['node.type.student_profile'],
+      configDependencies: ['node.type.student'],
     };
   }
 

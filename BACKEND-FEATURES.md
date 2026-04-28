@@ -77,7 +77,10 @@
   - inherited shared fields from a reusable base bundle
   - reusable supporting record bundles
   - multi-value typed contact-list fields
-  - dedicated reference field mappings for person, address, and student profile relationships
+  - dedicated reference field mappings for person, address, and student relationships
+- Drupal field definition YAML should be generated from schema using the scaffolder command:
+  - `node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2`
+- If generated field-definition formatting or structure needs changes, update schema inputs and/or scaffolder functionality first, then regenerate. Do not treat generated field definition YAML as primary hand-maintained source.
 
 ## Authentication And Session Features
 
@@ -111,7 +114,7 @@
 - Reusable/shared bundle catalog include:
   - `application`
   - `person`
-  - `student_profile`
+  - `student`
   - `address`
 - Dedicated application bundles include:
   - `application_partial_programming`
@@ -119,7 +122,7 @@
   - `application_full_middle_years`
   - `application_full_senior_years`
 - Existing supporting bundles still expected by the broader platform include:
-  - `student_profile`
+  - `student`
   - `document`
   - `payment`
 
@@ -153,16 +156,16 @@
 - Address relationships are references to reusable address records rather than embedded address strings.
 - The backend must validate contact formatting and cardinality rules.
 
-### Student Profile Bundle (`student_profile`)
+### Student Profile Bundle (`student`)
 
-- Label/intent: `student_profile` - reusable student profile for school applications.
+- Label/intent: `student` - reusable student profile for school applications.
 - Role in workflow: canonical student identity/demographic record that can be attached to applications.
 - Key fields include:
   - `field_first_name`
   - `field_last_name`
   - `field_date_of_birth`
   - `field_grade_applying_for`
-- Linked from applications through `field_student_profile`.
+- Linked from applications through `field_student`.
 
 ### Document Bundle (`document`)
 
@@ -217,7 +220,7 @@
 - JSON:API is enabled and writable for authenticated requests.
 - Backend supports CRUD operations consumed by frontend for application lifecycle operations.
 - Relationships are used to connect data entities, including:
-  - `application` -> `student_profile`
+  - `application` -> `student`
   - `document` -> `application`
   - `application` -> `payment` (via payment module)
 - Backend enforces auth and CSRF requirements for mutating operations.

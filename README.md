@@ -24,7 +24,7 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
   - `application_full_middle_years`
   - `application_full_senior_years`
 - Guardian and emergency contact data is normalized into a reusable `person` bundle.
-- Student identity data is normalized into a reusable `student_profile` bundle.
+- Student identity data is normalized into a reusable `student` bundle.
 - Postal addresses are normalized into a reusable `address` bundle.
 
 ## Contact Record Model
@@ -40,7 +40,7 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
 - The scaffold script supports:
   - reusable bundles
   - dedicated application bundles with inherited shared application fields
-  - `person_reference`, `address_reference`, and `student_profile_reference` fields
+  - `person_reference`, `address_reference`, and `student_reference` fields
   - multi-value typed contact lists for phone and email storage
 
 ## Frontend Direction

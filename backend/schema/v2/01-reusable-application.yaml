@@ -19,9 +19,9 @@ catalog:
               label: Submitted At
               type: date
               required: false
-            - key: student_profile
+            - key: student
               label: Student Profile
-              type: student_profile_reference
+              type: student_reference
               required: true
             - key: student_applying_for_grade
               label: Applying For Grade
