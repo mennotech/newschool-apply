@@ -43,7 +43,7 @@ For the complete set of rules and their justifications, refer to `AGENTS.md`.
 /backend/
   Dockerfile                    — Backend Docker image
   init.sh                       — Startup initialization script
-  package.json                  — Drupal Composer packages
+  composer.json                 — Drupal Composer package configuration
   services.yml                  — CORS and service configuration
   config/
     sync/                       — Exported Drupal configuration (versioned)
@@ -106,14 +106,17 @@ INIT-PROMPT-FULL.md             — This file
 - Backend service:
   - Builds from `./backend/Dockerfile`
   - Ports: `8080:80` (so `http://localhost:8080` reaches Drupal)
-  - Environment variables: `DRUPAL_ADMIN_USER`, `DRUPAL_ADMIN_PASS`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-  - Volume: `drupal_db:/var/www/html/sites/default/files` (SQLite database)
+  - Environment variables: `DRUPAL_ADMIN_USER`, `DRUPAL_ADMIN_PASS`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CORS_ALLOWED_ORIGINS`
+  - Volume: `backend_drupal_files:/var/www/html/web/sites/default/files` (Drupal uploaded files directory only)
+  - Volume: `backend_drupal_db:/var/drupal-db` (SQLite database, stored outside `sites/default/files` to prevent web exposure)
 - Frontend service:
   - Builds from `./frontend/Dockerfile.dev` (for development) or `./frontend/Dockerfile` (for production)
   - Ports: `3000:3000`
   - Environment: `REACT_APP_DRUPAL_BASE_URL=http://localhost:8080`
   - Volume mount: `./frontend/src:/app/src` (for hot-reload in dev)
-- Named volume: `drupal_db` for persistent Drupal SQLite storage
+- Named volume: `backend_drupal_files` for persistent Drupal uploaded files
+- Named volume: `backend_drupal_db` for the SQLite database stored at `/var/drupal-db/db.sqlite` (outside the webroot)
+- On Fly.io, a single `/data` volume is used instead: SQLite at `/data/db/db.sqlite` and uploaded files at `/data/files` (symlinked from `sites/default/files`). The SQLite path is read from `DRUPAL_SQLITE_PATH`.
 
 ### Environment Configuration
 
@@ -122,6 +125,7 @@ INIT-PROMPT-FULL.md             — This file
 - `DRUPAL_ADMIN_PASS` — Drupal admin password (e.g., `password123`)
 - `STRIPE_SECRET_KEY` — Stripe secret key (provided at runtime; can be overridden in env)
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret (provided at runtime)
+- `CORS_ALLOWED_ORIGINS` — Comma-separated list of allowed CORS origins (e.g., `http://localhost:3000`); defaults to local frontend
 - `DRUPAL_SITE_NAME` — Optional; defaults to "NewSchool Apply"
 
 **Frontend:**
@@ -137,7 +141,7 @@ INIT-PROMPT-FULL.md             — This file
 
 ```bash
 # From root directory
-docker-compose up
+docker compose up
 
 # In another terminal, watch frontend tests (optional)
 cd frontend
@@ -151,7 +155,7 @@ Frontend starts on `http://localhost:3000` (React SPA).
 
 **Backend (Drupal):**
 1. Modify Drupal config, modules, or custom code in `/backend/`
-2. Rebuild and restart: `docker-compose up --build backend`
+2. Rebuild and restart: `docker compose up --build backend`
 3. Or run `docker exec <backend_container> /var/www/html/vendor/bin/drush` for Drush commands
 
 **Frontend (React):**
@@ -161,11 +165,15 @@ Frontend starts on `http://localhost:3000` (React SPA).
 
 ### Database Reset
 
-Drupal SQLite database is stored in the named volume `drupal_db`. To reset:
+Drupal SQLite database is stored outside `sites/default/files`:
+- **Local Docker Compose**: named volume `backend_drupal_db` mounted at `/var/drupal-db/db.sqlite`
+- **Fly.io**: `/data/db/db.sqlite` inside the single `/data` volume
+
+To reset locally:
 
 ```bash
-docker-compose down -v    # Remove volume
-docker-compose up         # Recreates fresh Drupal instance
+docker compose down -v    # Remove volumes
+docker compose up         # Recreates fresh Drupal instance
 ```
 
 ---
@@ -178,13 +186,13 @@ The frontend uses **Redux Toolkit** for state management. Structure:
 frontend/src/store/
   index.js                      — Redux store configuration
   slices/
-    authSlice.js                — `{ user, csrfToken, status, error }`
+    authSlice.js                — `{ user, logoutToken, status, error }`
     applicationSlice.js         — `{ currentApplication, steps, status, error }`
 ```
 
 **Auth Slice:**
 - `user` — `null | { uid, name, email, roles }`
-- `csrfToken` — CSRF token for state-changing requests
+- `logoutToken` — logout token returned by the login response; required for the logout request
 - `status` — `'idle' | 'loading' | 'error'`
 
 **Application Slice:**
@@ -228,6 +236,7 @@ export function setBaseUrl(url)                  // Configure base URL
 - All requests include `credentials: 'include'` to send session cookies
 - `post`, `patch`, `delete_` automatically fetch and attach CSRF token as `X-CSRF-Token` header
 - Logout uses the `logoutToken` returned by login response (not CSRF token)
+- `getLogoutToken()` is used only for bootstrapped sessions (where no login response was received); it must call a backend endpoint that returns the logout token for the current Drupal session
 - Throw structured errors parsed from Drupal's JSON:API error format
 - Never store sensitive tokens long-term; fetch CSRF fresh before each mutation
 
@@ -268,6 +277,7 @@ Frontend routing uses `react-router-dom`. Key routes:
    - POST `/user/login?_format=json` with `{ name, pass }`
    - Drupal returns: `{ current_user: { uid, name, email, roles }, logout_token, csrf_token }`
    - Store `current_user` and `logout_token` in Redux auth slice
+   - Do **not** store `csrf_token` from the login response; fetch a fresh CSRF token from `/session/token` before each state-changing request
 4. Social login:
    - Browser redirects to Drupal OAuth endpoint
    - Drupal handles OAuth handshake with provider
@@ -424,7 +434,6 @@ docker-compose -f docker-compose.yml up
 - `AGENTS.md` — Architectural guardrails (non-negotiable)
 - `BACKEND-FEATURES.md` — Complete backend feature specification
 - `FRONTEND-FEATURES.md` — Complete frontend feature specification
-- `PAYMENT-MODULE-PROMPT.md` — Details on custom payment module (if implementing payments)
-- `PAYMENT-TESTING.md` — Payment module testing guide (if implementing payments)
+- `DEPLOYMENT.md` — Backup, restore, and Fly.io deployment design
 
 Read all referenced documents in this prompt to understand the complete requirements before starting implementation.

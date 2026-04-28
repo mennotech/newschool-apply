@@ -23,7 +23,8 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - backend_drupal_db:/var/www/html/web/sites/default/files
+      - backend_drupal_files:/var/www/html/web/sites/default/files
+      - backend_drupal_db:/var/drupal-db
     environment:
       - DRUPAL_ADMIN_USER
       - DRUPAL_ADMIN_PASS
@@ -44,6 +45,7 @@ services:
       - backend
 
 volumes:
+  backend_drupal_files:
   backend_drupal_db:
   frontend_node_modules:
 ```
@@ -56,7 +58,7 @@ docker compose down
 docker compose down -v
 ```
 
-Use `docker compose down -v` only when you intentionally want a fresh Drupal state and a reset SQLite database.
+Use `docker compose down -v` only when you intentionally want a fresh Drupal state (both uploaded files and the SQLite database are wiped).
 
 ## 3. What is the normal development cycle?
 

@@ -13,7 +13,7 @@
 - Backend image is built from `php:8.2-apache-bookworm`.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Drush is installed and used for install-time/bootstrap operations.
-- Drush should added to the docker image path for easy testing
+- Drush should be added to the docker image path for easy testing
 - Stripe CLI is installed in the backend image for local webhook testing.
 - Required PHP extensions for Drupal and media handling are installed, including:
   - `pdo_sqlite`
@@ -25,10 +25,17 @@
 
 - Container startup runs `backend/init.sh` before Apache foreground process.
 - Startup script ensures:
-  - `sites/default/files` exists and is writable.
-  - `settings.php` exists.
-  - SQLite database configuration is present in `settings.php`.
+  - `sites/default/files` exists and is owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` per Drupal's security guidance). No world read or execute permissions; only the owning user and group may access this directory.
+    - On Fly.io, `sites/default/files` must be a symlink to `/data/files` (the `files` subfolder of the single `/data` volume). The init script creates this symlink if it does not already exist, then applies the correct ownership and permissions to the target directory.
+    - On local Docker Compose, `sites/default/files` is a real directory backed by the named volume `backend_drupal_files` mounted directly at that path.
+  - `settings.php` exists and is written during first-time setup.
+  - After `settings.php` is written, its permissions are locked to `440` (read-only for owner and group, no access for others) so the web server cannot modify it. This is a Drupal security requirement.
+  - SQLite database configuration is present in `settings.php`. The SQLite database file path is read from the `DRUPAL_SQLITE_PATH` environment variable. The path must be **outside `sites/default/files`** and outside the webroot:
+    - Local Docker Compose default: `/var/drupal-db/db.sqlite` (named volume `backend_drupal_db`)
+    - Fly.io: `/data/db/db.sqlite` (subfolder of the single `/data` volume)
+    Do not store the SQLite database inside `sites/default/files`; that directory is web-accessible and serves uploaded files.
   - Config sync directory is set to `/var/www/html/config/sync`.
+- The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Codebase directories use permissions `750` and files use `640` per Drupal's security guidance. Only the `sites/default/files` directory requires web server write access.
 - Fresh installs are automatic when no valid Drupal SQLite schema is detected.
 - Installation uses configured admin credentials from environment variables.
 - Required modules are enabled during install, including:
@@ -81,6 +88,10 @@
   - `GET /session/token`
 - Session invalidation uses Drupal logout token flow:
   - `GET /user/logout?_format=json&token={logoutToken}`
+- Backend must expose a session info endpoint that returns the logout token for the active session so the frontend can perform logout after a bootstrapped session (one where no `/user/login` response was received by the frontend):
+  - `GET /api/session/info?_format=json` returning at minimum `{ logout_token, current_user: { uid, name, mail, roles } }`
+  - Endpoint is authenticated; returns 403 for unauthenticated requests
+  - Used by `getLogoutToken()` in the frontend API utility
 
 ### Session And Auth Endpoints
 
@@ -90,6 +101,7 @@
 | `/user/logout?_format=json&token={token}` | GET | Invalidate authenticated Drupal session |
 | `/user/login_status?_format=json` | GET | Return `1` or `0` for current session auth state |
 | `/session/token` | GET | Return CSRF token for state-changing requests |
+| `/api/session/info?_format=json` | GET | Return current user data and logout token for bootstrapped sessions |
 
 ## Bundle Type Catalog
 
@@ -205,7 +217,6 @@
   - `document` -> `application`
   - `application` -> `payment` (via payment module)
 - Backend enforces auth and CSRF requirements for mutating operations.
-- JSON:API remains enabled and writable for authenticated requests.
 - The backend data model expects JSON:API consumers to:
   - create and update reusable `person` records
   - create and update reusable `address` records

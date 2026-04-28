@@ -41,32 +41,63 @@ The codebase is intentionally excluded from Restic backups because source contro
 5. Backups must be externally triggerable without requiring shell access to the Fly machine.
 6. If the restore runtime commit differs from the backup commit, the restore process must run the required Drupal upgrade steps before returning the application to service.
 
-## Recommended Fly.io Data Layout
+## Data Layout
 
-The backup design is simplest and safest if all mutable Drupal data lives on a Fly volume mounted at `/data`.
+Mutable Drupal data must never be stored in `sites/default/files`. Storing the SQLite database there would expose it as a directly downloadable web file.
 
-Recommended target layout:
+### Local Docker Compose
+
+Two named Docker volumes keep the database and uploaded files separate:
+
+```yaml
+volumes:
+  backend_drupal_db:/var/drupal-db          # SQLite database only
+  backend_drupal_files:/var/www/html/web/sites/default/files  # uploaded files only
+```
+
+| Volume | Mount path | Contents |
+|---|---|---|
+| `backend_drupal_db` | `/var/drupal-db` | SQLite database (`db.sqlite`) |
+| `backend_drupal_files` | `/var/www/html/web/sites/default/files` | Drupal public uploaded files |
+
+### Fly.io
+
+Use a **single** Fly volume mounted at `/data` with two subfolders:
 
 ```text
 /data/
-  sqlite/
-    db.sqlite
+  db/
+    db.sqlite              ← SQLite database
   files/
     ... Drupal public files ...
 ```
 
 Recommended Drupal runtime mapping:
 
-- SQLite database path: `/data/sqlite/db.sqlite`
-- Drupal files path source: `/data/files`
-- Drupal public files path exposed to Drupal: `/var/www/html/web/sites/default/files`
+- SQLite database path: `/data/db/db.sqlite`
+- Drupal public files path: `/var/www/html/web/sites/default/files`
 
-Implementation options for the files directory:
+Implementation options for the Fly.io files directory:
 
 - Preferred: symlink `/var/www/html/web/sites/default/files` to `/data/files`
 - Acceptable: bind or copy-on-start pattern if the image/runtime arrangement requires it
 
-If the final build uses different paths, update this document and keep the same design constraints: one persistent location for SQLite and one persistent location for uploaded files.
+### File Permissions
+
+Regardless of environment, the following permissions apply:
+
+| Path | Ownership | Permissions | Notes |
+|---|---|---|---|
+| `sites/default/files` | `www-data:www-data` | `770` (`ug=rwx,o=`) | No world read or execute |
+| Files inside `sites/default/files` | `www-data:www-data` | `660` (`ug=rw,o=`) | |
+| SQLite database file | `www-data:www-data` | `660` | Must not be inside the files dir |
+| Drupal codebase directories | build user, `www-data` group | `750` | Web server has no write access |
+| Drupal codebase files | build user, `www-data` group | `640` | Web server has no write access |
+| `settings.php` | build user, `www-data` group | `440` | Locked after initial write |
+
+Never use `777` for any of these paths. Never store the SQLite database inside `sites/default/files`.
+
+If the final build uses different mount paths, update this document and keep the same design constraints: one persistent location for SQLite (outside the webroot) and one persistent location for uploaded files.
 
 ## What Must Be Backed Up
 
@@ -110,7 +141,7 @@ Each backup should generate a small JSON manifest and include it in the snapshot
   "fly_app": "<fly_app_name>",
   "fly_region": "<fly_region>",
   "backup_source": "drupal-webhook",
-  "db_path": "/data/sqlite/db.sqlite",
+  "db_path": "/data/db/db.sqlite",
   "files_path": "/data/files"
 }
 ```
@@ -119,9 +150,11 @@ The commit hash is the canonical restore key. The tag and version are helpful fo
 
 ## Environment Variables
 
-Use a `.env` file for local documentation parity and non-production operator workflows, but do not commit secrets. In Fly.io, the same variable names should be injected through Fly secrets or runtime environment configuration.
+These variables are used by the backup and restore scripts. They apply to the **Fly.io** runtime where backups run. For local Docker Compose development, the app itself does not need these backup variables — but the data paths differ and are noted in comments for reference.
 
-Example `.env` shape:
+In Fly.io, inject these through Fly secrets or runtime environment configuration. Do not commit secrets.
+
+Example `.env` shape for Fly.io backup operations:
 
 ```dotenv
 # Restic repository
@@ -133,8 +166,10 @@ AWS_ACCESS_KEY_ID=<access_key>
 AWS_SECRET_ACCESS_KEY=<secret_key>
 AWS_DEFAULT_REGION=<region>
 
-# Drupal data locations
-DRUPAL_SQLITE_PATH=/data/sqlite/db.sqlite
+# Drupal data locations (Fly.io — single /data volume with subfolders)
+# Local Docker Compose equivalent: DRUPAL_SQLITE_PATH=/var/drupal-db/db.sqlite
+# Local Docker Compose equivalent: DRUPAL_FILES_PATH=/var/www/html/web/sites/default/files
+DRUPAL_SQLITE_PATH=/data/db/db.sqlite
 DRUPAL_FILES_PATH=/data/files
 
 # Backup webhook security
@@ -385,7 +420,11 @@ Recommended order:
 2. back up current live data one more time if possible
 3. replace the SQLite file with the restored copy
 4. synchronize the files directory from the restore target
-5. repair ownership and permissions
+5. repair ownership and permissions:
+   - `sites/default/files` (and its contents) must be owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` — no world access). Files inside must be `660`.
+   - The SQLite database file must be owned by `www-data:www-data` with permissions `660`. It must remain in its dedicated path (`/data/db/db.sqlite` on Fly.io, `/var/drupal-db/db.sqlite` locally), never inside `sites/default/files`.
+   - `settings.php` must be set to `440` (read-only for owner and group, no access for others) after restore so the web server cannot modify it.
+   - The rest of the Drupal codebase must NOT be writable by `www-data`. Codebase directories should be `750` and files `640`.
 
 For files synchronization, prefer `rsync` semantics over destructive raw moves when possible.
 
@@ -486,7 +525,7 @@ Recommended backup triggers:
 
 ## Fly.io Operational Notes
 
-- The backup process must run on the machine that has the mounted Fly volume containing SQLite and files.
+- The backup process must run on the machine that has the Fly volume mounted at `/data`. Both subfolders (`/data/db` and `/data/files`) are on the same volume, so a single machine always has access to both.
 - If the backend is ever scaled beyond one machine, ensure the webhook is routed to the primary writable instance or use leader-only execution logic.
 - Do not run Restic from a stateless external job unless that job has direct access to the same mounted volume contents.
 - Keep Restic credentials in Fly secrets, not in the image.
@@ -500,7 +539,8 @@ Abort the backup if:
 - `GIT_COMMIT_SHA` is missing
 - Restic repository auth fails
 - SQLite snapshot creation fails
-- the files path is missing or unreadable
+- `DRUPAL_SQLITE_PATH` or `DRUPAL_FILES_PATH` is missing or unreadable
+- the SQLite database path is inside `sites/default/files` (misconfiguration guard)
 
 Abort the restore if:
 
@@ -599,8 +639,9 @@ export RUNTIME_GIT_COMMIT_SHA=<full_git_sha_currently_deployed>
 
 These choices should be finalized before coding starts:
 
-- exact Fly volume mount path if it differs from `/data`
 - whether the webhook invokes the backup synchronously or enqueues it
 - whether caller IP allowlisting is feasible in the production environment
 - whether backup retention must satisfy a formal compliance policy beyond the proposed defaults
 - whether the restore process runs inside the app container or in a dedicated admin task container
+
+Note: the data layout decision is settled. On Fly.io, a single `/data` volume is used with two subfolders: `/data/db/db.sqlite` for the SQLite database and `/data/files` for uploaded files. Locally (Docker Compose), two named volumes are used: `backend_drupal_db` → `/var/drupal-db` and `backend_drupal_files` → `sites/default/files`.
