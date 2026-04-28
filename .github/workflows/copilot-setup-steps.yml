@@ -1,0 +1,28 @@
+name: Copilot Setup Steps (Stub)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-build:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Stub step: confirms this workflow is intentionally minimal.
+      # Copilot cloud agent should extend this workflow with additional setup,
+      # health checks, and smoke tests as backend automation grows.
+      - name: Copilot extension note
+        run: |
+          echo "This is a starter workflow that builds the current backend."
+          echo "Extend this workflow in future tasks with environment setup,"
+          echo "container health checks, and backend smoke test execution."
+
+      - name: Build current backend
+        run: docker compose build backend
