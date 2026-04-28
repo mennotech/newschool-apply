@@ -108,7 +108,7 @@ class PaymentsController extends ControllerBase {
     }
 
     // Verify ownership: only the application owner or admins may pay.
-    if ($node->getOwnerId() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer nodes')) {
+    if ($node->getOwnerId() !== (int) $this->currentUser->id() && !$this->currentUser->hasPermission('administer nodes')) {
       throw new AccessDeniedHttpException('You may not pay for this application.');
     }
 
