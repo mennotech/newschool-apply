@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import * as client from '../api/drupalClient';
 
 const MAX_POLLS = 10;
@@ -7,7 +7,6 @@ const POLL_INTERVAL = 3000;
 
 function PaymentSuccessPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const sessionId = new URLSearchParams(location.search).get('session_id');
   const [status, setStatus] = useState('polling');
   const [receiptUrl, setReceiptUrl] = useState(null);
@@ -19,26 +18,38 @@ function PaymentSuccessPage() {
       return;
     }
 
+    let timeoutId;
+    let cancelled = false;
+
     const poll = async () => {
       try {
         const data = await client.get(`/api/payments/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
         if (data.status === 'paid') {
-          setStatus('paid');
-          if (data.receipt_url) setReceiptUrl(data.receipt_url);
+          if (!cancelled) {
+            setStatus('paid');
+            if (data.receipt_url) setReceiptUrl(data.receipt_url);
+          }
           return;
         }
       } catch {}
 
       pollCount.current += 1;
       if (pollCount.current >= MAX_POLLS) {
-        setStatus('timeout');
+        if (!cancelled) setStatus('timeout');
         return;
       }
-      setTimeout(poll, POLL_INTERVAL);
+      if (!cancelled) {
+        timeoutId = setTimeout(poll, POLL_INTERVAL);
+      }
     };
 
     poll();
-  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [sessionId]);
 
   return (
     <main className="page-content">

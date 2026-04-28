@@ -1,11 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../store/slices/authSlice';
 import applicationReducer from '../store/slices/applicationSlice';
 import ProtectedRoute from './ProtectedRoute';
+
+function LocationSearch() {
+  const { search } = useLocation();
+  return <span data-testid="search">{search}</span>;
+}
 
 function createTestStore(authState = {}) {
   return configureStore({
@@ -61,7 +66,7 @@ describe('ProtectedRoute', () => {
               element={
                 <div>
                   Login Page
-                  <span data-testid="search">{window.location.search}</span>
+                  <LocationSearch />
                 </div>
               }
             />
@@ -70,5 +75,6 @@ describe('ProtectedRoute', () => {
       </Provider>
     );
     expect(screen.getByText('Login Page')).toBeInTheDocument();
+    expect(screen.getByTestId('search').textContent).toBe(`?next=${encodeURIComponent('/protected')}`);
   });
 });

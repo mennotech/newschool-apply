@@ -43,9 +43,22 @@ fi
 SERVICES_DEST="${DRUPAL_ROOT}/sites/default/services.yml"
 if [ -f /var/www/html/services.yml.template ]; then
     CORS_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:3000}"
-    # Build YAML list from comma-separated string
-    CORS_LIST=$(echo "$CORS_ORIGINS" | tr ',' '\n' | sed "s/^[[:space:]]*/'/" | sed "s/[[:space:]]*$/'/" | paste -sd, -)
-    sed "s|__CORS_ORIGINS__|${CORS_LIST}|g" /var/www/html/services.yml.template > "$SERVICES_DEST"
+    # Build proper YAML list entries (one per origin) from comma-separated string
+    CORS_YAML=""
+    IFS=',' read -ra _ORIGINS <<< "$CORS_ORIGINS"
+    for _origin in "${_ORIGINS[@]}"; do
+        _origin=$(echo "$_origin" | tr -d '[:space:]')
+        [ -n "$_origin" ] && CORS_YAML="${CORS_YAML}    - '${_origin}'"$'\n'
+    done
+    unset _ORIGINS _origin
+    # Replace the placeholder line with one YAML list entry per origin
+    while IFS= read -r _line || [ -n "$_line" ]; do
+        if echo "$_line" | grep -qF '__CORS_ORIGINS__'; then
+            printf '%s' "$CORS_YAML"
+        else
+            printf '%s\n' "$_line"
+        fi
+    done < /var/www/html/services.yml.template > "$SERVICES_DEST"
     chown www-data:www-data "$SERVICES_DEST"
     chmod 640 "$SERVICES_DEST"
     echo "[init] services.yml written."
@@ -70,9 +83,24 @@ if [ ! -f "$SETTINGS_FILE" ]; then
 \$settings['config_sync_directory'] = '/var/www/html/config/sync';
 
 \$settings['hash_salt'] = '$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)';
-\$settings['trusted_host_patterns'] = [
-  '.*',
-];
+
+// Trusted host patterns: prefer TRUSTED_HOST_PATTERNS env var, then derive
+// from FLY_APP_NAME for Fly.io production, then fall back to localhost-only.
+\$_trusted_env = getenv('TRUSTED_HOST_PATTERNS');
+\$_fly_app = getenv('FLY_APP_NAME');
+if (\$_trusted_env) {
+  \$settings['trusted_host_patterns'] = array_map('trim', explode(',', \$_trusted_env));
+} elseif (\$_fly_app) {
+  \$settings['trusted_host_patterns'] = ['^' . preg_quote(\$_fly_app, '/') . '\\.fly\\.dev\$'];
+  \$_app_hostname = getenv('APP_HOSTNAME');
+  if (\$_app_hostname) {
+    \$settings['trusted_host_patterns'][] = '^' . preg_quote(\$_app_hostname, '/') . '\$';
+  }
+  unset(\$_app_hostname);
+} else {
+  \$settings['trusted_host_patterns'] = ['^localhost\$', '^127\\.0\\.0\\.1\$'];
+}
+unset(\$_trusted_env, \$_fly_app);
 \$settings['update_free_access'] = FALSE;
 \$settings['container_yamls'][] = DRUPAL_ROOT . '/sites/default/services.yml';
 SETTINGSEOF

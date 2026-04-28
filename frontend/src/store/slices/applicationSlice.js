@@ -5,9 +5,10 @@ const BASE = process.env.REACT_APP_DRUPAL_BASE_URL || '';
 
 export const fetchApplications = createAsyncThunk(
   'application/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
-      const data = await client.get('/jsonapi/node/application_partial_programming?include=field_student_profile&sort=-created');
+      const bundle = getState().application.selectedBundle;
+      const data = await client.get(`/jsonapi/node/${bundle}?include=field_student_profile&sort=-created`);
       return data;
     } catch (err) {
       return rejectWithValue(err.message);
@@ -38,9 +39,13 @@ export const createApplication = createAsyncThunk(
 
 export const fetchApplication = createAsyncThunk(
   'application/fetchOne',
-  async (id, { rejectWithValue }) => {
+  async (arg, { getState, rejectWithValue }) => {
     try {
-      const data = await client.get(`/jsonapi/node/application_partial_programming/${id}?include=field_student_profile`);
+      const id = typeof arg === 'string' ? arg : arg.id;
+      const bundle = (typeof arg === 'object' && arg.bundle)
+        ? arg.bundle
+        : getState().application.selectedBundle;
+      const data = await client.get(`/jsonapi/node/${bundle}/${id}?include=field_student_profile`);
       return data.data;
     } catch (err) {
       return rejectWithValue(err.message);
@@ -50,9 +55,12 @@ export const fetchApplication = createAsyncThunk(
 
 export const updateApplication = createAsyncThunk(
   'application/update',
-  async ({ id, bundle, attributes, relationships }, { rejectWithValue }) => {
+  async ({ id, bundle, attributes, relationships }, { getState, rejectWithValue }) => {
     try {
-      const bundleType = bundle || 'application_partial_programming';
+      const currentApp = getState().application.currentApplication;
+      const bundleType = bundle
+        || (currentApp?.type ? currentApp.type.replace('node--', '') : null)
+        || 'application_partial_programming';
       const body = {
         data: {
           type: `node--${bundleType}`,
@@ -84,8 +92,10 @@ export const deleteApplication = createAsyncThunk(
 
 export const uploadDocument = createAsyncThunk(
   'application/uploadDocument',
-  async ({ applicationId, file, documentType }, { rejectWithValue }) => {
+  async ({ applicationId, file, documentType }, { getState, rejectWithValue }) => {
     try {
+      const currentApp = getState().application.currentApplication;
+      const applicationType = currentApp?.type || 'node--application_partial_programming';
       const fileData = await client.uploadFile(
         `/jsonapi/node/document/field_file`,
         file
@@ -108,7 +118,7 @@ export const uploadDocument = createAsyncThunk(
             },
             relationships: {
               field_application: {
-                data: { type: 'node--application_partial_programming', id: applicationId },
+                data: { type: applicationType, id: applicationId },
               },
               field_file: {
                 data: { type: 'file--file', id: fileData.data.id },

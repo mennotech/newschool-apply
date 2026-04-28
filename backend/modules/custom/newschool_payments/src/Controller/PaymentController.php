@@ -188,11 +188,12 @@ class PaymentController extends ControllerBase {
     $payload = $request->getContent();
     $sig_header = $request->headers->get('stripe-signature');
 
-    if ($webhook_secret && $sig_header) {
-      // Verify webhook signature.
-      if (!$this->verifyStripeSignature($payload, $sig_header, $webhook_secret)) {
-        return new JsonResponse(['error' => 'Invalid signature'], 400);
-      }
+    if (!$webhook_secret) {
+      return new JsonResponse(['error' => 'Webhook not configured'], 500);
+    }
+
+    if (!$sig_header || !$this->verifyStripeSignature($payload, $sig_header, $webhook_secret)) {
+      return new JsonResponse(['error' => 'Invalid signature'], 400);
     }
 
     $event = json_decode($payload, TRUE);
@@ -224,9 +225,12 @@ class PaymentController extends ControllerBase {
 
   /**
    * Handles payment completion for a checkout session.
+   *
+   * Updates the payment tracking node to 'paid' and marks the linked
+   * application node as 'submitted'.
    */
   protected function handlePaymentComplete(string $session_id, string $application_uuid): void {
-    // Find the payment node by session ID.
+    // Update the payment node by session ID.
     $nodes = $this->entityTypeManager->getStorage('node')->loadByProperties([
       'type' => 'payment',
       'field_stripe_session_id' => $session_id,
@@ -239,6 +243,23 @@ class PaymentController extends ControllerBase {
       }
       catch (\Exception $e) {
         \Drupal::logger('newschool_payments')->error('Failed to update payment node: @msg', ['@msg' => $e->getMessage()]);
+      }
+    }
+
+    // Mark the application as submitted.
+    $storage = $this->entityTypeManager->getStorage('node');
+    $app_ids = $storage->getQuery()
+      ->condition('uuid', $application_uuid)
+      ->accessCheck(FALSE)
+      ->execute();
+
+    foreach ($storage->loadMultiple($app_ids) as $app_node) {
+      $app_node->set('field_application_status', 'submitted');
+      try {
+        $app_node->save();
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('newschool_payments')->error('Failed to update application node: @msg', ['@msg' => $e->getMessage()]);
       }
     }
   }

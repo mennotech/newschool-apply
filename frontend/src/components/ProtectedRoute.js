@@ -8,7 +8,8 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (!user) {
-    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+    const destination = location.pathname + location.search + location.hash;
+    return <Navigate to={`/login?next=${encodeURIComponent(destination)}`} replace />;
   }
 
   return children;
