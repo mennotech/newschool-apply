@@ -1,6 +1,39 @@
 # Frontend Features
 
-## Overview
+## Implementation Status
+
+The React frontend has been built at `frontend/`. The following summarizes what is implemented vs. planned.
+
+### Implemented (React Application)
+
+- React 18 SPA with React Router 6, Redux Toolkit, and vanilla CSS
+- Docker files (dev + production nginx) and environment configuration
+- Global CSS (`src/index.css`) with responsive layout, form styles, and component styles
+- Redux store: `authSlice` (login/logout/session/bootstrap) and `applicationSlice` (current application, payment tracking)
+- Centralized Drupal API client (`src/api/drupalClient.js`): GET, POST, PATCH, DELETE, file upload, login/logout, CSRF, session endpoints
+- MSW v2 mock service worker setup for tests (`src/mocks/handlers.js`, `src/mocks/server.js`)
+- All public routes: Home (`/`), Login (`/login`), Register (`/register`)
+- All protected routes: Dashboard (`/dashboard`), Application flow (`/apply/*`), Profile (`/profile`), Application detail (`/application/:id`), Not Found
+- `ProtectedRoute` wrapper that redirects to `/login?next=...`
+- `Header` with authenticated/unauthenticated navigation states and mobile hamburger menu
+- `StepIndicator` component with completed/active/locked states and `STEP_DEFS` export
+- `AlertBanner` dismissible alert component (success/error/warning/info)
+- All 8 application steps: StudentInfo, HealthInfo, GuardianInfo, AdditionalSupport, Questionnaire, Commitment (with canvas signature pad), Documents (drag-drop file upload), Review
+- Application bundle type selection modal on dashboard (partial_programming, full_early_years, full_middle_years, full_senior_years)
+- Test suite with Jest + React Testing Library + MSW: `drupalClient.test.js`, `authSlice.test.js`, `LoginPage.test.js`, `ProtectedRoute.test.js`
+- `.env.test` for test environment configuration
+
+### Planned / Not Yet Implemented
+
+- `/records/people` and `/records/addresses` reusable record library pages
+- Person record card UI with inline add/edit, typed email chips, typed phone chips
+- Address picker backed by reusable address records
+- Autosave on field blur for supported steps
+- Draft hydration (mapping Drupal node attributes back to step form state on resume)
+- Payment success page (`/payment-success?session_id=...`) with polling
+- Full Person/Address picker integration in Guardian and Health steps
+
+
 
 - Frontend is a React single-page application for admissions and account management.
 - Routing is handled client-side with protected and public routes.
