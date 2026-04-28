@@ -13,6 +13,7 @@ import authReducer, {
 } from './authSlice';
 
 const BASE = 'http://localhost:8080';
+const SESSION_STORAGE_KEY = 'auth_user';
 
 function createStore(preloadedState = {}) {
   return configureStore({
@@ -22,6 +23,13 @@ function createStore(preloadedState = {}) {
 }
 
 describe('authSlice', () => {
+  beforeEach(() => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  });
+
+  afterEach(() => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  });
   describe('initial state', () => {
     it('has null user and idle status', () => {
       const store = createStore();
