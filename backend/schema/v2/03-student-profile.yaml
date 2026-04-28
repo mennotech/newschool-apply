@@ -1,0 +1,28 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: student_profile
+      label: Student Profile
+      description: Reusable student profile for school applications.
+      kind: supporting_record
+      sections:
+        - id: student_profile_identity
+          title: Student Profile
+          description: Canonical student identity and grade details.
+          fields:
+            - key: first_name
+              label: First Name
+              type: text
+              required: true
+            - key: last_name
+              label: Last Name
+              type: text
+              required: true
+            - key: date_of_birth
+              label: Date Of Birth
+              type: date
+              required: true
+            - key: grade_applying_for
+              label: Grade Applying For
+              type: text
+              required: true

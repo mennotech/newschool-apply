@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * Generate Drupal config scaffolding from application-form.schema.yaml.
+ * Generate Drupal config scaffolding from the v2 catalog schema.
  *
  * Output:
  * - node.type.<bundle>.yml
@@ -42,144 +42,6 @@ function parseInlineOptions(value) {
   const inner = m[1].trim();
   if (!inner) return [];
   return inner.split(',').map((item) => unquote(item.trim()));
-}
-
-function parseLegacySchema(text) {
-  const lines = text.replace(/\r\n/g, '\n').split('\n');
-
-  const schema = {
-    form_id: '',
-    name: '',
-    drupal: {
-      entity_type: 'node',
-      bundle: 'application',
-      bundle_label: 'Application',
-      bundle_description: 'Generated from form schema',
-    },
-    sections: [],
-  };
-
-  let inDrupal = false;
-  let inSections = false;
-  let currentSection = null;
-  let currentField = null;
-  let readingFieldOptions = false;
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const raw = lines[i];
-    if (!raw.trim() || raw.trim().startsWith('#')) continue;
-
-    const indent = raw.match(/^\s*/)[0].length;
-    const line = raw.trim();
-
-    if (indent === 0 && line.startsWith('form_id:')) {
-      schema.form_id = unquote(line.slice('form_id:'.length));
-      continue;
-    }
-    if (indent === 0 && line.startsWith('name:')) {
-      schema.name = unquote(line.slice('name:'.length));
-      continue;
-    }
-
-    if (indent === 0 && line === 'drupal:') {
-      inDrupal = true;
-      inSections = false;
-      continue;
-    }
-    if (indent === 0 && line === 'sections:') {
-      inSections = true;
-      inDrupal = false;
-      continue;
-    }
-
-    if (inDrupal) {
-      if (indent <= 0) {
-        inDrupal = false;
-      } else if (indent === 2 && line.includes(':')) {
-        const idx = line.indexOf(':');
-        const key = line.slice(0, idx).trim();
-        const value = unquote(line.slice(idx + 1));
-        if (key) schema.drupal[key] = value;
-      }
-      continue;
-    }
-
-    if (!inSections) continue;
-
-    if (readingFieldOptions && indent === 10 && line.startsWith('- ')) {
-      currentField.options.push(unquote(line.slice(2)));
-      continue;
-    }
-    if (readingFieldOptions && indent <= 8) {
-      readingFieldOptions = false;
-    }
-
-    if (indent === 2 && line.startsWith('- id:')) {
-      currentSection = {
-        id: unquote(line.slice('- id:'.length)),
-        title: '',
-        description: '',
-        fields: [],
-      };
-      schema.sections.push(currentSection);
-      currentField = null;
-      continue;
-    }
-
-    if (!currentSection) continue;
-
-    if (indent === 4 && line.startsWith('title:')) {
-      currentSection.title = unquote(line.slice('title:'.length));
-      continue;
-    }
-    if (indent === 4 && line.startsWith('description:')) {
-      currentSection.description = unquote(line.slice('description:'.length));
-      continue;
-    }
-
-    if (indent === 6 && line.startsWith('- key:')) {
-      currentField = {
-        key: unquote(line.slice('- key:'.length)),
-        label: '',
-        type: 'text',
-        required: false,
-        options: [],
-      };
-      currentSection.fields.push(currentField);
-      continue;
-    }
-
-    if (!currentField || indent !== 8) continue;
-
-    if (line.startsWith('label:')) {
-      currentField.label = unquote(line.slice('label:'.length));
-      continue;
-    }
-    if (line.startsWith('type:')) {
-      currentField.type = unquote(line.slice('type:'.length));
-      continue;
-    }
-    if (line.startsWith('required:')) {
-      currentField.required = parseBool(line.slice('required:'.length));
-      continue;
-    }
-    if (line.startsWith('description:')) {
-      currentField.description = unquote(line.slice('description:'.length));
-      continue;
-    }
-    if (line.startsWith('options:')) {
-      const rawOptions = line.slice('options:'.length).trim();
-      if (!rawOptions) {
-        readingFieldOptions = true;
-        currentField.options = [];
-      } else {
-        const parsed = parseInlineOptions(rawOptions);
-        currentField.options = parsed || [];
-      }
-    }
-  }
-
-  return schema;
 }
 
 function parseCatalogSchema(text) {
@@ -385,45 +247,79 @@ function parseCatalogSchema(text) {
 }
 
 function parseSchema(text) {
-  if (text.includes('catalog:') && text.includes('application_bundles:')) {
-    return parseCatalogSchema(text);
+  const hasCatalog = text.includes('catalog:');
+  const hasReusableBundles = text.includes('reusable_bundles:');
+  const hasApplicationBundles = text.includes('application_bundles:');
+
+  if (!hasCatalog || (!hasReusableBundles && !hasApplicationBundles)) {
+    throw new Error('Unsupported schema format. This script only supports schema v2 catalog format.');
   }
 
-  return parseLegacySchema(text);
+  return parseCatalogSchema(text);
+}
+
+function mergeCatalogSchemas(parsedSchemas) {
+  const merged = {
+    version: 2,
+    catalog: {
+      reusable_bundles: [],
+      application_bundles: [],
+    },
+    notes: [],
+  };
+
+  parsedSchemas.forEach((schema) => {
+    if (Number.isFinite(Number(schema.version))) {
+      merged.version = Math.max(merged.version, Number(schema.version));
+    }
+
+    merged.catalog.reusable_bundles.push(...(schema.catalog?.reusable_bundles || []));
+    merged.catalog.application_bundles.push(...(schema.catalog?.application_bundles || []));
+    merged.notes.push(...(schema.notes || []));
+  });
+
+  return merged;
+}
+
+function loadSchema(schemaInputPath) {
+  const stat = fs.statSync(schemaInputPath);
+
+  if (stat.isDirectory()) {
+    const files = fs
+      .readdirSync(schemaInputPath)
+      .filter((name) => /\.ya?ml$/i.test(name))
+      .sort((a, b) => a.localeCompare(b));
+
+    if (files.length === 0) {
+      throw new Error(`No schema YAML files found in directory: ${schemaInputPath}`);
+    }
+
+    const parsedSchemas = files.map((name) => {
+      const filePath = path.join(schemaInputPath, name);
+      return parseSchema(fs.readFileSync(filePath, 'utf8'));
+    });
+
+    return mergeCatalogSchemas(parsedSchemas);
+  }
+
+  return parseSchema(fs.readFileSync(schemaInputPath, 'utf8'));
 }
 
 function normalizeSchema(parsedSchema) {
-  if (parsedSchema.catalog) {
-    const reusableBundles = parsedSchema.catalog.reusable_bundles || [];
-    const applicationBundles = parsedSchema.catalog.application_bundles || [];
-
-    return {
-      version: parsedSchema.version || 2,
-      bundles: [...reusableBundles, ...applicationBundles].map((bundle) => ({
-        machine_name: normalizeMachineName(bundle.machine_name || bundle.label || 'application'),
-        label: bundle.label || bundle.machine_name || 'Application',
-        description: bundle.description || 'Generated from form schema catalog',
-        kind: bundle.kind || 'bundle',
-        form_id: bundle.form_id || '',
-        base_bundle: bundle.base_bundle ? normalizeMachineName(bundle.base_bundle) : '',
-        sections: Array.isArray(bundle.sections) ? bundle.sections : [],
-      })),
-    };
-  }
+  const reusableBundles = parsedSchema.catalog.reusable_bundles || [];
+  const applicationBundles = parsedSchema.catalog.application_bundles || [];
 
   return {
-    version: parsedSchema.version || 1,
-    bundles: [
-      {
-        machine_name: normalizeMachineName(parsedSchema.drupal.bundle || 'application'),
-        label: parsedSchema.drupal.bundle_label || parsedSchema.name || 'Application',
-        description: parsedSchema.drupal.bundle_description || parsedSchema.name || 'Generated application content type',
-        kind: 'application_form',
-        form_id: parsedSchema.form_id || '',
-        base_bundle: '',
-        sections: Array.isArray(parsedSchema.sections) ? parsedSchema.sections : [],
-      },
-    ],
+    version: parsedSchema.version || 2,
+    bundles: [...reusableBundles, ...applicationBundles].map((bundle) => ({
+      machine_name: normalizeMachineName(bundle.machine_name || bundle.label || 'application'),
+      label: bundle.label || bundle.machine_name || 'Application',
+      description: bundle.description || 'Generated from form schema catalog',
+      kind: bundle.kind || 'bundle',
+      form_id: bundle.form_id || '',
+      base_bundle: bundle.base_bundle ? normalizeMachineName(bundle.base_bundle) : '',
+      sections: Array.isArray(bundle.sections) ? bundle.sections : [],
+    })),
   };
 }
 
@@ -744,21 +640,23 @@ function ensureDir(dirPath) {
 
 function main() {
   const defaultSchemaCandidates = [
-    path.resolve(__dirname, '..', '..', 'form.schema.yaml'),
-    path.resolve(__dirname, '..', '..', 'application-form.schema.yaml'),
+    path.resolve(__dirname, '..', 'schema', 'v2'),
+    path.resolve(__dirname, '..', 'schema', 'application-form.schema-v2.yaml'),
+    path.resolve(__dirname, '..', '..', 'backend', 'schema', 'v2'),
+    path.resolve(__dirname, '..', '..', 'backend', 'schema', 'application-form.schema-v2.yaml'),
   ];
 
   const schemaPath = process.argv[2] || defaultSchemaCandidates.find((candidate) => fs.existsSync(candidate));
   const outputDir = process.argv[3] || path.resolve(__dirname, '..', 'config', 'generated');
 
   if (!schemaPath || !fs.existsSync(schemaPath)) {
-    console.error('Schema file not found. Pass a path explicitly, e.g. node backend/scripts/scaffold-drupal-from-schema.js application-form.schema.yaml');
+    console.error('Schema path not found. Pass a v2 schema file or directory explicitly, e.g. node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2');
     process.exit(1);
   }
 
-  const normalizedSchema = normalizeSchema(parseSchema(fs.readFileSync(schemaPath, 'utf8')));
+  const normalizedSchema = normalizeSchema(loadSchema(schemaPath));
   if (!Array.isArray(normalizedSchema.bundles) || normalizedSchema.bundles.length === 0) {
-    console.error('No bundles found in schema.');
+    console.error('No bundles found in schema input.');
     process.exit(1);
   }
 

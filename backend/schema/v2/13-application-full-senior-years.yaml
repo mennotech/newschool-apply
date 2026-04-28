@@ -1,0 +1,10 @@
+version: 2
+catalog:
+  application_bundles:
+    - machine_name: application_full_senior_years
+      form_id: full_senior_years_application
+      label: Full Senior Years Application
+      description: Reserved bundle for a future full senior years application.
+      kind: application_form
+      base_bundle: application
+      sections: []

@@ -1,0 +1,168 @@
+version: 2
+catalog:
+  application_bundles:
+    - machine_name: application_partial_programming
+      form_id: home_school_partial_programming_application
+      label: Home School Partial Programming Application
+      description: Partial programming application submitted by a parent on behalf of a student.
+      kind: application_form
+      base_bundle: application
+      sections:
+        - id: student_information
+          title: Student Information
+          description: Student identity, demographics, and address details specific to this application.
+          fields:
+            - key: student_first_name
+              label: First Name
+              type: text
+              required: true
+            - key: student_middle_name
+              label: Middle Name
+              type: text
+              required: false
+            - key: student_last_name
+              label: Last Name
+              type: text
+              required: true
+            - key: student_preferred_name
+              label: Preferred Name
+              type: text
+              required: false
+            - key: student_gender
+              label: Gender
+              type: radio
+              required: true
+              options: [male, female]
+            - key: student_birth_date
+              label: Birth Date
+              type: date
+              required: true
+            - key: student_current_grade
+              label: Current Grade
+              type: select
+              required: true
+            - key: primary_home_phone
+              label: Primary / Home Phone Number
+              type: phone
+              required: true
+            - key: physical_address
+              label: Physical Address
+              type: address_reference
+              required: true
+            - key: mailing_address_differs
+              label: Is Mailing Address Different Than Physical Address?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: mailing_address
+              label: Mailing Address
+              type: address_reference
+              required: false
+            - key: citizenship_status
+              label: Citizenship Status
+              type: radio
+              required: true
+              options:
+                - canadian_citizen
+                - permanent_resident
+                - refugee_claimant
+                - study_permit
+                - other
+            - key: attended_mb_school_before
+              label: Have You Attended a Manitoba School in the Past?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: church_attending
+              label: Church Attending
+              type: text
+              required: false
+            - key: denomination
+              label: Denomination
+              type: text
+              required: false
+        - id: health_information
+          title: Health Information
+          description: Student health card and medical details.
+          fields:
+            - key: mb_health_number_9_digit
+              label: 'MB Health # - 9 Digit'
+              type: text
+              required: true
+            - key: mb_health_number_6_digit
+              label: 'MB Health # - 6 Digit'
+              type: text
+              required: true
+            - key: emergency_contact_person
+              label: Emergency Contact
+              type: person_reference
+              required: false
+            - key: allergies
+              label: Allergies
+              type: textarea
+              required: false
+            - key: medications_used_frequently
+              label: Medications Used Frequently
+              type: textarea
+              required: false
+            - key: medical_restrictions
+              label: Medical Restrictions
+              type: textarea
+              required: false
+        - id: parent_guardian_information
+          title: Parent / Guardian Information
+          description: Parent and guardian records are selected from reusable Person records.
+          fields:
+            - key: primary_guardian_relationship_notes
+              label: Primary Guardian Notes
+              type: textarea
+              required: false
+            - key: secondary_guardian_relationship_notes
+              label: Secondary Guardian Notes
+              type: textarea
+              required: false
+        - id: additional_support_declaration
+          title: Additional Support Declaration
+          description: Educational and psychological support background.
+          fields:
+            - key: academic_support_details
+              label: Academic Support
+              type: textarea
+              required: false
+            - key: diagnosis_assessments_details
+              label: Diagnosis / Assessments
+              type: textarea
+              required: false
+            - key: psychological_support_details
+              label: Psychological Support
+              type: textarea
+              required: false
+            - key: support_declaration_reviewed
+              label: Support Declaration Reviewed
+              type: radio
+              required: false
+              options: [yes, no]
+        - id: parent_questionnaire
+          title: Parent Questionnaire
+          description: Parent narrative responses.
+          fields:
+            - key: questionnaire_contact_person
+              label: Questionnaire Contact Person
+              type: person_reference
+              required: true
+            - key: christian_testimony
+              label: Christian Testimony Description
+              type: textarea
+              required: true
+            - key: school_interest_reason
+              label: Reason for Wanting Child to Attend Steinbach Christian School
+              type: textarea
+              required: true
+        - id: statement_of_commitment
+          title: Statement of Commitment
+          description: Consent acknowledgement and signature.
+          fields:
+            - key: parent_guardian_signature
+              label: Parent/Guardian Signature
+              type: signature
+              required: true
