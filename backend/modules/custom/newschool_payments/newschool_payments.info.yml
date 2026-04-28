@@ -1,0 +1,8 @@
+name: 'NewSchool Payments'
+type: module
+description: 'Handles Stripe payment processing for NewSchool application fees.'
+core_version_requirement: ^10
+package: NewSchool
+dependencies:
+  - drupal:node
+  - drupal:jsonapi

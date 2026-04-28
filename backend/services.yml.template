@@ -1,0 +1,33 @@
+parameters:
+  session.storage.options:
+    gc_probability: 1
+    gc_divisor: 100
+    gc_maxlifetime: 200000
+    cookie_lifetime: 2000000
+
+services:
+  cache.backend.null:
+    class: Drupal\Core\Cache\NullBackendFactory
+
+  http.middleware.cors:
+    class: Drupal\Core\StackMiddleware\CorsHandler
+    tags:
+      - { name: http_middleware, priority: 200 }
+
+cors.config:
+  enabled: true
+  allowedHeaders:
+    - '*'
+  allowedMethods:
+    - 'GET'
+    - 'POST'
+    - 'PUT'
+    - 'PATCH'
+    - 'DELETE'
+    - 'HEAD'
+    - 'OPTIONS'
+  allowedOrigins:
+    - __CORS_ORIGINS__
+  exposedHeaders: false
+  maxAge: false
+  supportsCredentials: true
