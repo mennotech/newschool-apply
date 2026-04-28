@@ -155,8 +155,13 @@ Frontend starts on `http://localhost:3000` (React SPA).
 
 **Backend (Drupal):**
 1. Modify Drupal config, modules, or custom code in `/backend/`
-2. Rebuild and restart: `docker compose up --build backend`
-3. Or run `docker exec <backend_container> /var/www/html/vendor/bin/drush` for Drush commands
+2. For schema-driven content type or field definition changes, regenerate definitions from schema:
+   - `node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2`
+   - Use `backend/schema/application-form.schema-v2.yaml` only for compatibility scenarios.
+   - Do not hand-maintain generated field definition YAML when the schema/script can be updated.
+3. If generated field definition files need reformatting or structure changes, update schema files and/or add scaffolding functionality in `backend/scripts/scaffold-drupal-from-schema.js`, then regenerate.
+4. Rebuild and restart: `docker compose up --build backend`
+5. Or run `docker exec <backend_container> /var/www/html/vendor/bin/drush` for Drush commands
 
 **Frontend (React):**
 1. Edit files in `/frontend/src/`
@@ -421,6 +426,8 @@ Before considering the app complete, verify:
 
 - [ ] Backend Dockerfile builds and runs Drupal 10 successfully
 - [ ] Backend `init.sh` runs on startup and scaffolds database/config
+- [ ] Drupal field definitions are generated via `backend/scripts/scaffold-drupal-from-schema.js` from schema sources
+- [ ] Any field-definition formatting changes are implemented in schema/scaffolder and regenerated (not hand-reformatted in generated output)
 - [ ] Frontend Dockerfile.dev supports hot-reload on Windows (via `CHOKIDAR_USEPOLLING`)
 - [ ] Frontend Dockerfile production image serves static files via nginx
 - [ ] `docker-compose up` starts both services successfully

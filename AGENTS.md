@@ -188,6 +188,8 @@ AI coding agents are used to assist with development. They **must adhere to thes
 - **What AI Agents Should Do**:
   - **Consult Feature Documentation**: Before starting any feature work, review [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) and [BACKEND-FEATURES.md](BACKEND-FEATURES.md) to understand what features already exist and avoid duplication.  
   - **Update Feature Documentation**: Whenever a feature is added, removed, modified, or renamed, the AI agent **must update the corresponding features document** (frontend or backend). Feature documentation should always reflect the actual implemented state. Update immediately after implementing the feature, not as an afterthought.  
+  - **Generate Drupal Field Definitions From Schema**: For backend content-type and field-definition changes, use `node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2` (or the compatibility schema path) to generate Drupal field definition YAML. Treat generated field definition files as scaffold output, not hand-authored source.
+  - **Handle Field Definition Formatting At The Source**: If generated field definition YAML needs reformatting or structural changes, update the schema inputs and/or add functionality in `backend/scripts/scaffold-drupal-from-schema.js`, then regenerate. Do not manually reformat generated field definition files as the primary fix.
   - **Refer to Testing Documentation**: When implementing backend features, consult [BACKEND-TESTING.md](BACKEND-TESTING.md) for the smoke test framework and see [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md) for testing strategy overview.  
   - **Verify Backend Tests Pass**: After any backend changes, run the smoke test suite:
     ```bash
@@ -202,6 +204,7 @@ AI coding agents are used to assist with development. They **must adhere to thes
 
 - **What AI Agents Must NOT Do**:  
   - **Forget Documentation**: Do not implement features without updating the corresponding [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) or [BACKEND-FEATURES.md](BACKEND-FEATURES.md) file. Feature documentation is critical for maintainability and must be kept in sync with the code. A feature is not "done" until its documentation is updated.  
+  - **Hand-Edit Generated Field Definitions As A First Resort**: Do not manually reformat or manually maintain generated Drupal field definition YAML when the source schema or scaffolding script should be updated instead.
   - **Change the Architecture**: Do not propose moving logic to the frontend or introducing new layers that conflict with the established Drupal backend + React frontend division.  
   - **Introduce New Patterns or Tech**: Don’t spontaneously add state management libraries, new frameworks, or radically different coding patterns that haven’t been used in the project. Follow the existing style and approaches unless the maintainers request a change.  
   - **Add Dependencies**: As per the dependency policy, the AI should not decide to pull in a new library (for instance, for date handling, form management, etc.) on its own. Use the tools already available in the project or vanilla JS/React capabilities.  
