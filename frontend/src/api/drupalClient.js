@@ -1,5 +1,3 @@
-const BASE_URL = process.env.REACT_APP_DRUPAL_BASE_URL || '';
-
 export function setBaseUrl(url) {
   // Base URL is read from environment; this exists as a helper for testing
   process.env.REACT_APP_DRUPAL_BASE_URL = url;

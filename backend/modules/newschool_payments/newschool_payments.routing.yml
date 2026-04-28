@@ -1,14 +1,10 @@
 newschool_payments.session_info:
   path: /api/session/info
   defaults:
-    _rest_resource: '\Drupal\newschool_payments\Plugin\rest\resource\SessionInfoResource'
+    _controller: '\Drupal\newschool_payments\Controller\PaymentsController::sessionInfo'
   methods: [GET]
   requirements:
     _user_is_logged_in: 'TRUE'
-  options:
-    _auth:
-      - cookie
-      - basic_auth
 
 newschool_payments.checkout_session:
   path: /api/payments/checkout-session
@@ -17,10 +13,6 @@ newschool_payments.checkout_session:
   methods: [POST]
   requirements:
     _user_is_logged_in: 'TRUE'
-  options:
-    _auth:
-      - cookie
-      - basic_auth
 
 newschool_payments.checkout_status:
   path: /api/payments/checkout-status
@@ -29,10 +21,6 @@ newschool_payments.checkout_status:
   methods: [GET]
   requirements:
     _user_is_logged_in: 'TRUE'
-  options:
-    _auth:
-      - cookie
-      - basic_auth
 
 newschool_payments.stripe_webhook:
   path: /api/payments/stripe/webhook

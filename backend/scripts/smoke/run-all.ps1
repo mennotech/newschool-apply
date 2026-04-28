@@ -46,8 +46,10 @@ foreach ($script in $test_scripts) {
 
     try {
         & $script -BaseUrl $BaseUrl -AdminUser $AdminUser -AdminPass $AdminPass
-        if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-            Write-Host "`n[FAILED] $name exited with code $LASTEXITCODE" -ForegroundColor Red
+        $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
+        $exitCode = if ($null -ne $exitCodeVar) { [int]$exitCodeVar.Value } else { 0 }
+        if ($exitCode -ne 0) {
+            Write-Host "`n[FAILED] $name exited with code $exitCode" -ForegroundColor Red
             $failed = $true
             break
         }

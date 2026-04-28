@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCurrentApplication } from '../../store/slices/applicationSlice';
@@ -17,7 +17,7 @@ function CommitmentStep() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentApplication = useSelector((s) => s.application.currentApplication);
-  const attrs = currentApplication?.attributes || {};
+  const attrs = useMemo(() => currentApplication?.attributes || {}, [currentApplication]);
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);

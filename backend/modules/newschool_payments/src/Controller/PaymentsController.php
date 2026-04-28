@@ -45,6 +45,33 @@ class PaymentsController extends ControllerBase {
   }
 
   /**
+   * GET /api/session/info
+   *
+   * Returns current user data and a fresh logout token for the active session.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Session info payload.
+   */
+  public function sessionInfo(): JsonResponse {
+    if ($this->currentUser->isAnonymous()) {
+      throw new AccessDeniedHttpException('Authentication required.');
+    }
+
+    /** @var \Drupal\user\UserInterface|null $account */
+    $account = \Drupal\user\Entity\User::load($this->currentUser->id());
+
+    return new JsonResponse([
+      'logout_token' => \Drupal::csrfToken()->get('logout'),
+      'current_user' => [
+        'uid' => (int) $this->currentUser->id(),
+        'name' => $this->currentUser->getAccountName(),
+        'mail' => $account ? $account->getEmail() : '',
+        'roles' => array_values($this->currentUser->getRoles()),
+      ],
+    ], 200);
+  }
+
+  /**
    * POST /api/payments/checkout-session
    *
    * Creates a Stripe Checkout session for an application fee. Requires an
@@ -69,15 +96,6 @@ class PaymentsController extends ControllerBase {
       throw new BadRequestHttpException('Missing required field: application_id.');
     }
 
-    $config = $this->config('newschool_payments.settings');
-    $stripe_key = getenv('STRIPE_SECRET_KEY') ?: $config->get('stripe_secret_key');
-
-    if (empty($stripe_key)) {
-      return new JsonResponse([
-        'error' => 'Payment processing is not configured. Contact the administrator.',
-      ], 503);
-    }
-
     $application_id = $body['application_id'];
 
     // Load the application node.
@@ -92,6 +110,15 @@ class PaymentsController extends ControllerBase {
     // Verify ownership: only the application owner or admins may pay.
     if ($node->getOwnerId() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer nodes')) {
       throw new AccessDeniedHttpException('You may not pay for this application.');
+    }
+
+    $config = $this->config('newschool_payments.settings');
+    $stripe_key = getenv('STRIPE_SECRET_KEY') ?: $config->get('stripe_secret_key');
+
+    if (empty($stripe_key)) {
+      return new JsonResponse([
+        'error' => 'Payment processing is not configured. Contact the administrator.',
+      ], 503);
     }
 
     // Check for an existing paid payment.

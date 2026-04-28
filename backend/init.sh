@@ -170,7 +170,7 @@ if [ -d "${CONFIG_SYNC_DIR}" ] && [ "$(ls -A "${CONFIG_SYNC_DIR}" 2>/dev/null | 
 
   if [ "${CURRENT_HASH}" != "${STORED_HASH}" ]; then
     echo "[init] Config hash changed (${STORED_HASH:-none} → ${CURRENT_HASH}). Importing config …"
-    ${DRUSH_CMD} config:import --yes || echo "[init] Config import finished (warnings above may be normal on first run)."
+    ${DRUSH_CMD} config:import --partial --yes || echo "[init] Config import finished (warnings above may be normal on first run)."
     echo "${CURRENT_HASH}" > "${CONFIG_HASH_FILE}"
     echo "[init] Config imported and hash recorded."
   else

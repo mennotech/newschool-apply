@@ -138,16 +138,23 @@ function Get-Json {
         Parses the JSON body of an Invoke-WebRequest response.
     #>
     param(
-        [Microsoft.PowerShell.Commands.BasicHtmlWebResponseObject]$Response
+        [object]$Response
     )
-    if ([string]::IsNullOrWhiteSpace($Response.Content)) {
+    $content = if ($Response.Content -is [byte[]]) {
+        [System.Text.Encoding]::UTF8.GetString($Response.Content)
+    }
+    else {
+        [string]$Response.Content
+    }
+
+    if ([string]::IsNullOrWhiteSpace($content)) {
         return $null
     }
     try {
-        return $Response.Content | ConvertFrom-Json -AsHashtable
+        return $content | ConvertFrom-Json
     }
     catch {
-        Fail-Test "Failed to parse JSON response: $($Response.Content.Substring(0, [Math]::Min(200, $Response.Content.Length)))"
+        Fail-Test "Failed to parse JSON response: $($content.Substring(0, [Math]::Min(200, $content.Length)))"
     }
 }
 
