@@ -143,6 +143,7 @@ Minimum expectation:
 
 - Update [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) when frontend behavior changes.
 - Update [BACKEND-FEATURES.md](BACKEND-FEATURES.md) when backend behavior, endpoints, schema, or runtime behavior changes.
+- Update [CHANGELOG.md](CHANGELOG.md) to track release-visible feature changes, fixes, breaking changes, and operational notes.
 - Update [README.md](README.md) when setup or high-level project usage changes.
 - Update this file when the team changes the development loop.
 
@@ -167,6 +168,8 @@ Release rules:
 - Release from a clean, reviewed commit.
 - Make the Git commit SHA the primary release identifier.
 - Add a Git tag for human-friendly release tracking when needed.
+- Track release-facing changes in [CHANGELOG.md](CHANGELOG.md) under an `Unreleased` section before creating a GitHub release.
+- Convert the `Unreleased` section into a versioned release section when publishing a release on github.com.
 - Keep release metadata aligned with deployment metadata: `GIT_COMMIT_SHA` is required, while `GIT_TAG` and `APP_VERSION` are optional but recommended.
 - Build release artifacts from Docker, not from ad hoc host-local environments.
 
@@ -176,20 +179,24 @@ Recommended release cycle:
 2. Run the required validation for the release candidate. At minimum, run the frontend test command from `frontend/` and verify the Dockerized stack still starts cleanly.
 3. Build the release images from the repository state that will be tagged and deployed.
 4. Tag the release commit if the team is using versioned releases.
-5. Inject release metadata into the deployment environment so the running containers know which commit and release tag they represent.
-6. After deployment, verify the application is healthy before treating the release as complete.
+5. Create or update the GitHub Release entry and use [CHANGELOG.md](CHANGELOG.md) as the source for release notes.
+6. Inject release metadata into the deployment environment so the running containers know which commit and release tag they represent.
+7. After deployment, verify the application is healthy before treating the release as complete.
 
 Best practices:
 
 - Do not release from an uncommitted local workspace.
 - Do not bypass Docker for backend release validation.
 - Keep local development and release images as close as practical so Fly.io behavior matches what was tested.
+- Keep release notes user-focused: explain what changed, why it matters, and whether any action is required.
+- Include explicit sections for `Added`, `Changed`, `Fixed`, `Security`, and `Breaking Changes` in [CHANGELOG.md](CHANGELOG.md).
 - If deployment behavior, backup behavior, or restore behavior changes, update [DEPLOYMENT.md](DEPLOYMENT.md) in the same change.
 - If a release requires new environment variables, document them before deployment.
 
 Minimum release checklist:
 
 - Docs updated.
+- [CHANGELOG.md](CHANGELOG.md) updated from `Unreleased` and mapped to the release tag.
 - Tests and required validation passed.
 - Docker images built from the release commit.
 - Release metadata recorded.
