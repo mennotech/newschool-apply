@@ -327,6 +327,39 @@ Frontend routing uses `react-router-dom`. Key routes:
 
 ## Testing Strategy
 
+### Backend Tests (PowerShell Smoke Tests)
+
+The backend uses a **cross-platform PowerShell-based smoke test framework** to validate Drupal API contracts and critical workflows.
+
+**Structure:**
+```
+backend/scripts/smoke/
+  common.ps1                    — Shared test helpers and utilities
+  01-auth-session.ps1           — Authentication and session management tests
+  02-drupal-bundle-crud.ps1     — Entity CRUD operations across all bundles
+  03-payments-and-logout.ps1    — Payment endpoint and logout flow tests
+  run-all.ps1                   — Test runner (executes all tests in order)
+```
+
+**How to run:**
+
+```bash
+# Ensure backend is running via Docker
+docker compose up -d backend
+
+# From repo root, execute test suite
+pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser 'admin' -AdminPass 'password123'
+```
+
+**Key principles:**
+- Tests run cross-platform using `pwsh` (PowerShell 7+)
+- Tests validate API contracts, not implementation details
+- Tests are deterministic, order-independent, and clean up after themselves
+- Each test group focuses on a single responsibility
+- Failures exit immediately with clear error messages
+
+**For complete backend testing documentation**, see [BACKEND-TESTING.md](BACKEND-TESTING.md).
+
 ### Frontend Tests (Jest + React Testing Library + MSW)
 
 **Test files:**

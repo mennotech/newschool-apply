@@ -15,7 +15,8 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
 
 ## Current Data Model Direction
 
-- The schema in `application-form.schema.yaml` now uses a catalog format.
+- The schema in `backend/schema/v2/` uses a split v2 catalog format (one YAML file per reusable or application bundle).
+- The scaffold script can also read the legacy monolithic `backend/schema/application-form.schema-v2.yaml` file for compatibility.
 - The reusable `application` bundle is limited to cross-form application metadata and shared relationship fields.
 - Each concrete application type lives in its own dedicated bundle:
   - `application_partial_programming`
@@ -23,6 +24,7 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
   - `application_full_middle_years`
   - `application_full_senior_years`
 - Guardian and emergency contact data is normalized into a reusable `person` bundle.
+- Student identity data is normalized into a reusable `student_profile` bundle.
 - Postal addresses are normalized into a reusable `address` bundle.
 
 ## Contact Record Model
@@ -34,7 +36,7 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
 
 ## Schema Scaffolding
 
-- `backend/scripts/scaffold-drupal-from-schema.js` reads `application-form.schema.yaml` and generates Drupal scaffold config.
+- `backend/scripts/scaffold-drupal-from-schema.js` reads a v2 schema file or a v2 schema directory and generates Drupal scaffold config.
 - The scaffold script supports:
   - reusable bundles
   - dedicated application bundles with inherited shared application fields
@@ -51,10 +53,16 @@ NewSchool Apply is organized so Drupal remains the system of record for workflow
 
 ### Backend
 
-Generate Drupal scaffold config from the schema:
+Generate Drupal scaffold config from the split v2 schema directory:
 
 ```bash
-node backend/scripts/scaffold-drupal-from-schema.js application-form.schema.yaml
+node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2
+```
+
+Or generate from the monolithic compatibility file:
+
+```bash
+node backend/scripts/scaffold-drupal-from-schema.js backend/schema/application-form.schema-v2.yaml
 ```
 
 ### Frontend

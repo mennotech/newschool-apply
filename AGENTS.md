@@ -188,10 +188,17 @@ AI coding agents are used to assist with development. They **must adhere to thes
 - **What AI Agents Should Do**:
   - **Consult Feature Documentation**: Before starting any feature work, review [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) and [BACKEND-FEATURES.md](BACKEND-FEATURES.md) to understand what features already exist and avoid duplication.  
   - **Update Feature Documentation**: Whenever a feature is added, removed, modified, or renamed, the AI agent **must update the corresponding features document** (frontend or backend). Feature documentation should always reflect the actual implemented state. Update immediately after implementing the feature, not as an afterthought.  
+  - **Refer to Testing Documentation**: When implementing backend features, consult [BACKEND-TESTING.md](BACKEND-TESTING.md) for the smoke test framework and see [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md) for testing strategy overview.  
+  - **Verify Backend Tests Pass**: After any backend changes, run the smoke test suite:
+    ```bash
+    docker compose up -d backend
+    pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser 'admin' -AdminPass 'password123'
+    ```
+    All tests must pass before considering work complete.
   - Generate or update **React components** following the project's patterns (without altering architecture).
-  - Write **integration code** to connect the frontend with Drupal’s APIs (e.g., fetching data, submitting forms, handling responses), consistent with API specs.  
+  - Write **integration code** to connect the frontend with Drupal's APIs (e.g., fetching data, submitting forms, handling responses), consistent with API specs.  
   - Create **UI flows** as specified by requirements, ensuring they align with backend-driven logic (for example, implement the screens and navigation for a multi-step form, but not the decision on skipping a step unless told via API).  
-  - Produce **tests** for new logic, when applicable, as part of the deliverable (see Testing Expectations above).  
+  - Produce **tests** for new logic, when applicable, as part of the deliverable (see [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#testing-strategy) for testing strategy).
 
 - **What AI Agents Must NOT Do**:  
   - **Forget Documentation**: Do not implement features without updating the corresponding [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) or [BACKEND-FEATURES.md](BACKEND-FEATURES.md) file. Feature documentation is critical for maintainability and must be kept in sync with the code. A feature is not "done" until its documentation is updated.  

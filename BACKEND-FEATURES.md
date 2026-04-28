@@ -12,6 +12,7 @@
 
 - Backend image is built from `php:8.2-apache-bookworm`.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
+- Apache strips `WWW-Authenticate` response headers so browser-native 401 auth prompts are suppressed and the JS frontend handles unauthorized UX.
 - Drush is installed and used for install-time/bootstrap operations.
 - Drush should be added to the docker image path for easy testing
 - Stripe CLI is installed in the backend image for local webhook testing.
@@ -65,12 +66,14 @@
 
 ## Schema And Scaffolding Features
 
-- `application-form.schema.yaml`
+- Primary schema source: `backend/schema/v2/` (split v2 catalog files).
+- Compatibility schema source: `backend/schema/application-form.schema-v2.yaml`.
 - The schema separates bundles into:
   - `reusable_bundles`
   - `application_bundles`
 - `backend/scripts/scaffold-drupal-from-schema.js` now supports:
   - catalog schemas with multiple bundles
+  - split-schema directory input (merges all `.yaml` / `.yml` files deterministically)
   - inherited shared fields from a reusable base bundle
   - reusable supporting record bundles
   - multi-value typed contact-list fields
@@ -108,6 +111,7 @@
 - Reusable/shared bundle catalog include:
   - `application`
   - `person`
+  - `student_profile`
   - `address`
 - Dedicated application bundles include:
   - `application_partial_programming`
