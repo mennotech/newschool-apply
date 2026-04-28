@@ -150,9 +150,11 @@ The commit hash is the canonical restore key. The tag and version are helpful fo
 
 ## Environment Variables
 
-Use a `.env` file for local documentation parity and non-production operator workflows, but do not commit secrets. In Fly.io, the same variable names should be injected through Fly secrets or runtime environment configuration.
+These variables are used by the backup and restore scripts. They apply to the **Fly.io** runtime where backups run. For local Docker Compose development, the app itself does not need these backup variables — but the data paths differ and are noted in comments for reference.
 
-Example `.env` shape:
+In Fly.io, inject these through Fly secrets or runtime environment configuration. Do not commit secrets.
+
+Example `.env` shape for Fly.io backup operations:
 
 ```dotenv
 # Restic repository
@@ -164,9 +166,9 @@ AWS_ACCESS_KEY_ID=<access_key>
 AWS_SECRET_ACCESS_KEY=<secret_key>
 AWS_DEFAULT_REGION=<region>
 
-# Drupal data locations
-# Local Docker Compose: db at /var/drupal-db/db.sqlite, files at /var/www/html/web/sites/default/files
-# Fly.io: single /data volume with subfolders — db at /data/db/db.sqlite, files at /data/files
+# Drupal data locations (Fly.io — single /data volume with subfolders)
+# Local Docker Compose equivalent: DRUPAL_SQLITE_PATH=/var/drupal-db/db.sqlite
+# Local Docker Compose equivalent: DRUPAL_FILES_PATH=/var/www/html/web/sites/default/files
 DRUPAL_SQLITE_PATH=/data/db/db.sqlite
 DRUPAL_FILES_PATH=/data/files
 

@@ -116,6 +116,7 @@ INIT-PROMPT-FULL.md             — This file
   - Volume mount: `./frontend/src:/app/src` (for hot-reload in dev)
 - Named volume: `backend_drupal_files` for persistent Drupal uploaded files
 - Named volume: `backend_drupal_db` for the SQLite database stored at `/var/drupal-db/db.sqlite` (outside the webroot)
+- On Fly.io, a single `/data` volume is used instead: SQLite at `/data/db/db.sqlite` and uploaded files at `/data/files` (symlinked from `sites/default/files`). The SQLite path is read from `DRUPAL_SQLITE_PATH`.
 
 ### Environment Configuration
 
@@ -164,7 +165,11 @@ Frontend starts on `http://localhost:3000` (React SPA).
 
 ### Database Reset
 
-Drupal SQLite database is stored in the named volume `backend_drupal_db` (mounted at `/var/drupal-db/db.sqlite`, outside `sites/default/files`). To reset:
+Drupal SQLite database is stored outside `sites/default/files`:
+- **Local Docker Compose**: named volume `backend_drupal_db` mounted at `/var/drupal-db/db.sqlite`
+- **Fly.io**: `/data/db/db.sqlite` inside the single `/data` volume
+
+To reset locally:
 
 ```bash
 docker compose down -v    # Remove volumes

@@ -26,9 +26,14 @@
 - Container startup runs `backend/init.sh` before Apache foreground process.
 - Startup script ensures:
   - `sites/default/files` exists and is owned by `www-data:www-data` with permissions `770` (`ug=rwx,o=` per Drupal's security guidance). No world read or execute permissions; only the owning user and group may access this directory.
+    - On Fly.io, `sites/default/files` must be a symlink to `/data/files` (the `files` subfolder of the single `/data` volume). The init script creates this symlink if it does not already exist, then applies the correct ownership and permissions to the target directory.
+    - On local Docker Compose, `sites/default/files` is a real directory backed by the named volume `backend_drupal_files` mounted directly at that path.
   - `settings.php` exists and is written during first-time setup.
   - After `settings.php` is written, its permissions are locked to `440` (read-only for owner and group, no access for others) so the web server cannot modify it. This is a Drupal security requirement.
-  - SQLite database configuration is present in `settings.php`. The SQLite database file is stored at `/var/drupal-db/db.sqlite`, which is **outside `sites/default/files`** and outside the webroot. Do not store the SQLite database inside `sites/default/files`; that directory is web-accessible and serves uploaded files.
+  - SQLite database configuration is present in `settings.php`. The SQLite database file path is read from the `DRUPAL_SQLITE_PATH` environment variable. The path must be **outside `sites/default/files`** and outside the webroot:
+    - Local Docker Compose default: `/var/drupal-db/db.sqlite` (named volume `backend_drupal_db`)
+    - Fly.io: `/data/db/db.sqlite` (subfolder of the single `/data` volume)
+    Do not store the SQLite database inside `sites/default/files`; that directory is web-accessible and serves uploaded files.
   - Config sync directory is set to `/var/www/html/config/sync`.
 - The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Codebase directories use permissions `750` and files use `640` per Drupal's security guidance. Only the `sites/default/files` directory requires web server write access.
 - Fresh installs are automatic when no valid Drupal SQLite schema is detected.
