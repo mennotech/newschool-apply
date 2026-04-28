@@ -1,0 +1,86 @@
+name: Copilot Backend Setup Steps
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - backend/**
+      - application-form.schema.yaml
+      - docker-compose.yml
+      - .github/workflows/copilot-setup-steps.yml
+  push:
+    branches:
+      - main
+    paths:
+      - backend/**
+      - application-form.schema.yaml
+      - docker-compose.yml
+      - .github/workflows/copilot-setup-steps.yml
+
+permissions:
+  contents: read
+
+jobs:
+  backend-build-and-smoke-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Regenerate Drupal scaffold config from schema
+        run: node backend/scripts/scaffold-drupal-from-schema.js application-form.schema.yaml backend/config/sync
+
+      - name: Build backend image
+        run: docker compose build backend
+
+      - name: Start backend container
+        env:
+          DRUPAL_ADMIN_USER: admin
+          DRUPAL_ADMIN_PASS: password123
+          STRIPE_WEBHOOK_SECRET: whsec_ci_test_secret
+        run: docker compose up -d backend
+
+      - name: Wait for backend health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          backend_container="$(docker compose ps -q backend)"
+          if [ -z "$backend_container" ]; then
+            echo "Backend container was not created."
+            exit 1
+          fi
+
+          for attempt in {1..60}; do
+            health_status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$backend_container")"
+            if [ "$health_status" = "healthy" ]; then
+              echo "Backend is healthy."
+              exit 0
+            fi
+            echo "Attempt $attempt/60: health status is '$health_status'."
+            sleep 5
+          done
+
+          echo "Backend did not become healthy in time."
+          docker compose logs backend
+          exit 1
+
+      - name: Run backend smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="http://localhost:8080" bash backend/scripts/smoke/run-all.sh
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: docker compose logs backend
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
