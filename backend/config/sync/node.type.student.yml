@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Student Profile
+type: student
+description: Reusable student profile for school applications.
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

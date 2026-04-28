@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_student_lives_with
+    - node.type.application_full_early_years
+id: node.application_full_early_years.field_student_lives_with
+field_name: field_student_lives_with
+entity_type: node
+bundle: application_full_early_years
+label: Student Lives With
+description: 'Section: Application Identity'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

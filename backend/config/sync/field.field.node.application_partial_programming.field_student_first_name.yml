@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_student_first_name
+    - node.type.application_partial_programming
+id: node.application_partial_programming.field_student_first_name
+field_name: field_student_first_name
+entity_type: node
+bundle: application_partial_programming
+label: First Name
+description: 'Section: Student Information'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

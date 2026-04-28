@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_christian_testimony
+    - node.type.application_partial_programming
+id: node.application_partial_programming.field_christian_testimony
+field_name: field_christian_testimony
+entity_type: node
+bundle: application_partial_programming
+label: Christian Testimony Description
+description: 'Section: Parent Questionnaire'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: text_long

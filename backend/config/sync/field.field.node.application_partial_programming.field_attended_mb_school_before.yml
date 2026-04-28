@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_attended_mb_school_before
+    - node.type.application_partial_programming
+id: node.application_partial_programming.field_attended_mb_school_before
+field_name: field_attended_mb_school_before
+entity_type: node
+bundle: application_partial_programming
+label: 'Have You Attended a Manitoba School in the Past?'
+description: 'Section: Student Information'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Application
+type: application
+description: Reusable application metadata and cross-form relationships shared by all application types.
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

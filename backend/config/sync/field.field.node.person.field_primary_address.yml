@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_primary_address
+    - node.type.person
+    - node.type.address
+id: node.person.field_primary_address
+field_name: field_primary_address
+entity_type: node
+bundle: person
+label: Primary Address
+description: 'Section: Address Links'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      address: address
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

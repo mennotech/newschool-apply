@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_school_interest_reason
+    - node.type.application_partial_programming
+id: node.application_partial_programming.field_school_interest_reason
+field_name: field_school_interest_reason
+entity_type: node
+bundle: application_partial_programming
+label: Reason for Wanting Child to Attend Steinbach Christian School
+description: 'Section: Parent Questionnaire'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: text_long

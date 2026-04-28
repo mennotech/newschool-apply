@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_custody_description
+    - node.type.application_full_middle_years
+id: node.application_full_middle_years.field_custody_description
+field_name: field_custody_description
+entity_type: node
+bundle: application_full_middle_years
+label: Custody Description
+description: 'Section: Application Identity'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

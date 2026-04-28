@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_student
+    - node.type.application_full_early_years
+    - node.type.student
+id: node.application_full_early_years.field_student
+field_name: field_student
+entity_type: node
+bundle: application_full_early_years
+label: Student Profile
+description: 'Section: Application Identity'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      student: student
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference
