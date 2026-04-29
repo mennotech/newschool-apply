@@ -10,7 +10,7 @@ entity_type: node
 bundle: application_partial_programming
 label: Last Name
 description: 'Section: Student Information'
-required: true
+required: false
 translatable: false
 default_value: {}
 default_value_callback: ''

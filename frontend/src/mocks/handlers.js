@@ -45,4 +45,8 @@ export const handlers = [
   http.get(`${BASE_URL}/jsonapi/node/application`, () => {
     return HttpResponse.json({ data: [] });
   }),
+
+  http.get(`${BASE_URL}/jsonapi/node/application_partial_programming`, () => {
+    return HttpResponse.json({ data: [] });
+  }),
 ];

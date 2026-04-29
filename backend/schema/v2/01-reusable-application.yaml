@@ -22,15 +22,15 @@ catalog:
             - key: student
               label: Student Profile
               type: student_reference
-              required: true
+              required: false
             - key: student_applying_for_grade
               label: Applying For Grade
               type: select
-              required: true
+              required: false
             - key: primary_guardian_person
               label: Primary Guardian
               type: person_reference
-              required: true
+              required: false
             - key: secondary_guardian_person
               label: Secondary Guardian
               type: person_reference
@@ -38,17 +38,17 @@ catalog:
             - key: household_relationship_status
               label: Student's Parents Are
               type: radio
-              required: true
+              required: false
               options: [married, divorced, separated, other]
             - key: student_lives_with
               label: Student Lives With
               type: radio
-              required: true
+              required: false
               options: [both_parents, mother, father, shared_custody, other]
             - key: custody_description
               label: Custody Description
               type: radio
-              required: true
+              required: false
               options: [joint, mother, father, other]
         - id: application_review
           title: Application Review Tracking

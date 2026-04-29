@@ -15,17 +15,17 @@ function StudentInfoStep() {
     firstName: attrs.field_student_first_name || '',
     middleName: attrs.field_student_middle_name || '',
     lastName: attrs.field_student_last_name || '',
-    preferredName: attrs.field_preferred_name || '',
-    gender: attrs.field_gender || '',
-    dob: attrs.field_date_of_birth || '',
-    currentGrade: attrs.field_current_grade || '',
-    applyingGrade: attrs.field_applying_grade || '',
-    phone: attrs.field_phone || '',
-    citizenship: attrs.field_citizenship || '',
-    prevMbSchool: attrs.field_previous_mb_school || '',
-    church: attrs.field_church || '',
+    preferredName: attrs.field_student_preferred_name || '',
+    gender: attrs.field_student_gender || '',
+    dob: attrs.field_student_birth_date || '',
+    currentGrade: attrs.field_student_current_grade || '',
+    applyingGrade: attrs.field_student_applying_for_grade || '',
+    phone: attrs.field_primary_home_phone || '',
+    citizenship: attrs.field_citizenship_status || '',
+    prevMbSchool: attrs.field_attended_mb_school_before || '',
+    church: attrs.field_church_attending || '',
     denomination: attrs.field_denomination || '',
-    mailingDiff: attrs.field_mailing_different || false,
+    mailingDiff: attrs.field_mailing_address_differs === 'yes',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -61,33 +61,33 @@ function StudentInfoStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           ...(appId ? { id: appId } : {}),
           attributes: {
             field_student_first_name: form.firstName,
             field_student_middle_name: form.middleName,
             field_student_last_name: form.lastName,
-            field_preferred_name: form.preferredName,
-            field_gender: form.gender,
-            field_date_of_birth: form.dob,
-            field_current_grade: form.currentGrade,
-            field_applying_grade: form.applyingGrade,
-            field_phone: form.phone,
-            field_citizenship: form.citizenship,
-            field_previous_mb_school: form.prevMbSchool,
-            field_church: form.church,
+            field_student_preferred_name: form.preferredName,
+            field_student_gender: form.gender,
+            field_student_birth_date: form.dob,
+            field_student_current_grade: form.currentGrade,
+            field_student_applying_for_grade: form.applyingGrade,
+            field_primary_home_phone: form.phone,
+            field_citizenship_status: form.citizenship,
+            field_attended_mb_school_before: form.prevMbSchool,
+            field_church_attending: form.church,
             field_denomination: form.denomination,
-            field_mailing_different: form.mailingDiff,
+            field_mailing_address_differs: form.mailingDiff ? 'yes' : 'no',
           },
         },
       };
       let updated;
       if (appId) {
-        updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+        updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       } else {
         payload.data.attributes.title = `${form.firstName} ${form.lastName} Application`;
-        payload.data.attributes.field_status = 'draft';
-        updated = await drupalClient.post('/jsonapi/node/application', payload);
+        payload.data.attributes.field_application_status = 'draft';
+        updated = await drupalClient.post('/jsonapi/node/application_partial_programming', payload);
       }
       dispatch(setCurrentApplication(updated.data));
       navigate('/apply/health-info');
@@ -269,28 +269,35 @@ function StudentInfoStep() {
           <label htmlFor="si-citizenship">
             Citizenship<span className="required-mark" aria-hidden="true">*</span>
           </label>
-          <input
+          <select
             id="si-citizenship"
-            type="text"
             value={form.citizenship}
             onChange={(e) => handleChange('citizenship', e.target.value)}
             aria-required="true"
             aria-invalid={errors.citizenship ? 'true' : 'false'}
             aria-describedby={errors.citizenship ? 'si-citizenship-err' : undefined}
-            placeholder="e.g. Canadian"
-          />
+          >
+            <option value="">Select…</option>
+            <option value="canadian_citizen">Canadian Citizen</option>
+            <option value="permanent_resident">Permanent Resident</option>
+            <option value="refugee_claimant">Refugee Claimant</option>
+            <option value="study_permit">Study Permit</option>
+            <option value="other">Other</option>
+          </select>
           {errors.citizenship && <span id="si-citizenship-err" className="field-error" role="alert">{errors.citizenship}</span>}
         </div>
 
         <div className="form-group">
           <label htmlFor="si-prevMbSchool">Previous Manitoba School</label>
-          <input
+          <select
             id="si-prevMbSchool"
-            type="text"
             value={form.prevMbSchool}
             onChange={(e) => handleChange('prevMbSchool', e.target.value)}
-            placeholder="School name (if applicable)"
-          />
+          >
+            <option value="">Select…</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
         </div>
 
         <div className="form-row">

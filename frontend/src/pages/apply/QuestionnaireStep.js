@@ -13,8 +13,8 @@ function QuestionnaireStep() {
 
   const [form, setForm] = useState({
     parentName: attrs.field_parent_name || '',
-    christianTestimony: attrs.field_parent_testimony || '',
-    reasonForInterest: attrs.field_reason_for_interest || '',
+    christianTestimony: attrs.field_christian_testimony || '',
+    reasonForInterest: attrs.field_school_interest_reason || '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -46,16 +46,15 @@ function QuestionnaireStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           id: appId,
           attributes: {
-            field_parent_name: form.parentName,
-            field_parent_testimony: form.christianTestimony,
-            field_reason_for_interest: form.reasonForInterest,
+            field_christian_testimony: form.christianTestimony,
+            field_school_interest_reason: form.reasonForInterest,
           },
         },
       };
-      const updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+      const updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       dispatch(setCurrentApplication(updated.data));
       navigate('/apply/commitment');
     } catch (err) {

@@ -35,11 +35,11 @@ function ApplicationLayout() {
   const attrs = currentApplication?.attributes || {};
   const completedSteps = [];
   if (attrs.field_student_first_name) completedSteps.push('student-info');
-  if (attrs.field_health_number) completedSteps.push('health-info');
-  if (attrs.field_household_status) completedSteps.push('guardian-info');
-  if (attrs.field_additional_support_reviewed) completedSteps.push('additional-support');
-  if (attrs.field_parent_testimony) completedSteps.push('questionnaire');
-  if (attrs.field_signature_data) completedSteps.push('commitment');
+  if (attrs.field_mb_health_number_9_digit) completedSteps.push('health-info');
+  if (attrs.field_student_lives_with) completedSteps.push('guardian-info');
+  if (attrs.field_support_declaration_265eb8) completedSteps.push('additional-support');
+  if (attrs.field_christian_testimony) completedSteps.push('questionnaire');
+  if (attrs.field_parent_guardian_signature) completedSteps.push('commitment');
 
   const step1Complete = completedSteps.includes('student-info') || attrs.field_student_first_name;
 

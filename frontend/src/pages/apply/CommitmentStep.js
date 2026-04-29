@@ -7,10 +7,23 @@ import AlertBanner from '../../components/AlertBanner';
 
 const REQUIRED_FIELDS = [
   { step: 'student-info', label: 'Student Information', field: 'field_student_first_name' },
-  { step: 'health-info', label: 'Health Information', field: 'field_health_number' },
-  { step: 'guardian-info', label: 'Guardian Information', field: 'field_household_status' },
-  { step: 'additional-support', label: 'Additional Support Declaration', field: 'field_additional_support_reviewed' },
-  { step: 'questionnaire', label: 'Parent Questionnaire', field: 'field_parent_testimony' },
+  { step: 'student-info', label: 'Student Information', field: 'field_student_last_name' },
+  { step: 'student-info', label: 'Student Information', field: 'field_student_gender' },
+  { step: 'student-info', label: 'Student Information', field: 'field_student_birth_date' },
+  { step: 'student-info', label: 'Student Information', field: 'field_student_current_grade' },
+  { step: 'student-info', label: 'Student Information', field: 'field_student_applying_for_grade' },
+  { step: 'student-info', label: 'Student Information', field: 'field_primary_home_phone' },
+  { step: 'student-info', label: 'Student Information', field: 'field_citizenship_status' },
+  { step: 'student-info', label: 'Student Information', field: 'field_attended_mb_school_before' },
+  { step: 'student-info', label: 'Student Information', field: 'field_mailing_address_differs' },
+  { step: 'health-info', label: 'Health Information', field: 'field_mb_health_number_9_digit' },
+  { step: 'health-info', label: 'Health Information', field: 'field_mb_health_number_6_digit' },
+  { step: 'guardian-info', label: 'Guardian Information', field: 'field_student_lives_with' },
+  { step: 'guardian-info', label: 'Guardian Information', field: 'field_household_relations_e12444' },
+  { step: 'guardian-info', label: 'Guardian Information', field: 'field_custody_description' },
+  { step: 'additional-support', label: 'Additional Support Declaration', field: 'field_support_declaration_265eb8' },
+  { step: 'questionnaire', label: 'Parent Questionnaire', field: 'field_christian_testimony' },
+  { step: 'questionnaire', label: 'Parent Questionnaire', field: 'field_school_interest_reason' },
 ];
 
 function CommitmentStep() {
@@ -30,7 +43,7 @@ function CommitmentStep() {
   const [submitted, setSubmitted] = useState(false);
 
   // Canvas setup runs once on mount; signature data is restored from saved attrs only at initial load
-  const savedSignature = attrs.field_signature_data;
+  const savedSignature = attrs.field_parent_guardian_signature;
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -124,16 +137,16 @@ function CommitmentStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           id: appId,
           attributes: {
-            field_signature_data: signatureData,
-            field_status: 'submitted',
+            field_parent_guardian_signature: signatureData,
+            field_application_status: 'submitted',
             field_submitted_at: new Date().toISOString(),
           },
         },
       };
-      const updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+      const updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       dispatch(setCurrentApplication(updated.data));
       setSubmitted(true);
     } catch (err) {

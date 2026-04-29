@@ -1,10 +1,12 @@
+let baseUrlOverride = null;
+
 export function setBaseUrl(url) {
-  // Base URL is read from environment; this exists as a helper for testing
-  process.env.REACT_APP_DRUPAL_BASE_URL = url;
+  // Keep test override mutable without assigning to compile-time env constants.
+  baseUrlOverride = url;
 }
 
 function getBaseUrl() {
-  return process.env.REACT_APP_DRUPAL_BASE_URL || '';
+  return baseUrlOverride || process.env.REACT_APP_DRUPAL_BASE_URL || '';
 }
 
 function parseDrupalError(data) {

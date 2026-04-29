@@ -43,15 +43,15 @@ function ReviewStep() {
         <ReviewField label="First Name" value={attrs.field_student_first_name} />
         <ReviewField label="Middle Name" value={attrs.field_student_middle_name} />
         <ReviewField label="Last Name" value={attrs.field_student_last_name} />
-        <ReviewField label="Preferred Name" value={attrs.field_preferred_name} />
-        <ReviewField label="Gender" value={attrs.field_gender} />
-        <ReviewField label="Date of Birth" value={attrs.field_date_of_birth} />
-        <ReviewField label="Current Grade" value={attrs.field_current_grade} />
-        <ReviewField label="Applying for Grade" value={attrs.field_applying_grade} />
-        <ReviewField label="Phone" value={attrs.field_phone} />
-        <ReviewField label="Citizenship" value={attrs.field_citizenship} />
-        <ReviewField label="Previous MB School" value={attrs.field_previous_mb_school} />
-        <ReviewField label="Church" value={attrs.field_church} />
+        <ReviewField label="Preferred Name" value={attrs.field_student_preferred_name || attrs.field_preferred_name} />
+        <ReviewField label="Gender" value={attrs.field_student_gender || attrs.field_gender} />
+        <ReviewField label="Date of Birth" value={attrs.field_student_birth_date || attrs.field_date_of_birth} />
+        <ReviewField label="Current Grade" value={attrs.field_student_current_grade || attrs.field_current_grade} />
+        <ReviewField label="Applying for Grade" value={attrs.field_student_applying_for_grade || attrs.field_applying_grade} />
+        <ReviewField label="Phone" value={attrs.field_primary_home_phone || attrs.field_phone} />
+        <ReviewField label="Citizenship" value={attrs.field_citizenship_status || attrs.field_citizenship} />
+        <ReviewField label="Previous MB School" value={attrs.field_attended_mb_school_before || attrs.field_previous_mb_school} />
+        <ReviewField label="Church" value={attrs.field_church_attending || attrs.field_church} />
         <ReviewField label="Denomination" value={attrs.field_denomination} />
       </div>
 
@@ -63,11 +63,12 @@ function ReviewStep() {
             Edit
           </button>
         </div>
-        <ReviewField label="MB Health Number" value={attrs.field_health_number} />
+        <ReviewField label="MB Health Number (9 Digit)" value={attrs.field_mb_health_number_9_digit || attrs.field_health_number} />
+        <ReviewField label="MB Health Number (6 Digit)" value={attrs.field_mb_health_number_6_digit} />
         <ReviewField label="Emergency Contact" value={attrs.field_emergency_contact_name} />
         <ReviewField label="Emergency Phone" value={attrs.field_emergency_contact_phone} />
         <ReviewField label="Allergies" value={attrs.field_allergies} />
-        <ReviewField label="Medications" value={attrs.field_medications} />
+        <ReviewField label="Medications" value={attrs.field_medications_used_fr_2b9881 || attrs.field_medications} />
         <ReviewField label="Medical Restrictions" value={attrs.field_medical_restrictions} />
       </div>
 
@@ -83,7 +84,7 @@ function ReviewStep() {
         <ReviewField label="Primary Phone" value={attrs.field_primary_guardian_phone} />
         <ReviewField label="Primary Email" value={attrs.field_primary_guardian_email} />
         <ReviewField label="Secondary Guardian" value={attrs.field_secondary_guardian_name} />
-        <ReviewField label="Household Status" value={attrs.field_household_status} />
+        <ReviewField label="Household Status" value={attrs.field_household_relations_e12444 || attrs.field_household_status} />
         <ReviewField label="Student Lives With" value={attrs.field_student_lives_with} />
       </div>
 
@@ -95,10 +96,10 @@ function ReviewStep() {
             Edit
           </button>
         </div>
-        <ReviewField label="Academic Support" value={attrs.field_academic_support} />
-        <ReviewField label="Diagnoses / Assessments" value={attrs.field_diagnosis_assessments} />
-        <ReviewField label="Psychological Support" value={attrs.field_psychological_support} />
-        <ReviewField label="Reviewed" value={attrs.field_additional_support_reviewed ? 'Yes' : undefined} />
+        <ReviewField label="Academic Support" value={attrs.field_academic_support_details || attrs.field_academic_support} />
+        <ReviewField label="Diagnoses / Assessments" value={attrs.field_diagnosis_assessmen_18b9ab || attrs.field_diagnosis_assessments} />
+        <ReviewField label="Psychological Support" value={attrs.field_psychological_suppo_e92629 || attrs.field_psychological_support} />
+        <ReviewField label="Reviewed" value={(attrs.field_support_declaration_265eb8 || attrs.field_additional_support_reviewed) ? 'Yes' : undefined} />
       </div>
 
       {/* Questionnaire */}
@@ -110,8 +111,8 @@ function ReviewStep() {
           </button>
         </div>
         <ReviewField label="Parent Name" value={attrs.field_parent_name} />
-        <ReviewField label="Christian Testimony" value={attrs.field_parent_testimony} />
-        <ReviewField label="Reason for Interest" value={attrs.field_reason_for_interest} />
+        <ReviewField label="Christian Testimony" value={attrs.field_christian_testimony || attrs.field_parent_testimony} />
+        <ReviewField label="Reason for Interest" value={attrs.field_school_interest_reason || attrs.field_reason_for_interest} />
       </div>
 
       <div className="form-actions">

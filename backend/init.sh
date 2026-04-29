@@ -48,6 +48,7 @@ chmod 770 "${FILES_DIR}"
 # 2. settings.php — write once then lock to 440
 # ---------------------------------------------------------------------------
 SETTINGS_PHP="${SITES_DEFAULT}/settings.php"
+CONTAINER_YAMLS_LINE="\$settings['container_yamls'][] = \$app_root . '/' . \$site_path . '/services.yml';"
 
 if [ ! -f "${SETTINGS_PHP}" ]; then
   echo "[init] Writing settings.php …"
@@ -69,6 +70,7 @@ if [ ! -f "${SETTINGS_PHP}" ]; then
   'autoload' => 'core/modules/sqlite/src/Driver/Database/sqlite/',
 );
 \$settings['hash_salt'] = '${HASH_SALT}';
+${CONTAINER_YAMLS_LINE}
 \$settings['config_sync_directory'] = '/var/www/html/config/sync';
 \$settings['trusted_host_patterns'] = ['^.*\$'];
 \$settings['file_private_path'] = '';
@@ -80,6 +82,15 @@ PHP
   # Restore sites/default to non-writable
   chmod u-w "${SITES_DEFAULT}"
   echo "[init] settings.php written and locked."
+fi
+
+# Ensure settings.php always loads services.yml (for existing installs too).
+if [ -f "${SETTINGS_PHP}" ] && ! grep -q "container_yamls.*services.yml" "${SETTINGS_PHP}"; then
+  chmod u+w "${SETTINGS_PHP}"
+  printf '\n%s\n' "${CONTAINER_YAMLS_LINE}" >> "${SETTINGS_PHP}"
+  chown www-data:www-data "${SETTINGS_PHP}"
+  chmod 440 "${SETTINGS_PHP}"
+  echo "[init] Added services.yml include to settings.php."
 fi
 
 # ---------------------------------------------------------------------------

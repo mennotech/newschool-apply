@@ -12,11 +12,12 @@ function HealthInfoStep() {
   const attrs = currentApplication?.attributes || {};
 
   const [form, setForm] = useState({
-    healthNumber: attrs.field_health_number || '',
+    healthNumber9: attrs.field_mb_health_number_9_digit || '',
+    healthNumber6: attrs.field_mb_health_number_6_digit || '',
     emergencyContactName: attrs.field_emergency_contact_name || '',
     emergencyContactPhone: attrs.field_emergency_contact_phone || '',
     allergies: attrs.field_allergies || '',
-    medications: attrs.field_medications || '',
+    medications: attrs.field_medications_used_fr_2b9881 || '',
     medicalRestrictions: attrs.field_medical_restrictions || '',
   });
   const [errors, setErrors] = useState({});
@@ -30,9 +31,8 @@ function HealthInfoStep() {
 
   function validate() {
     const errs = {};
-    if (!form.healthNumber.trim()) errs.healthNumber = 'Manitoba health number is required';
-    if (!form.emergencyContactName.trim()) errs.emergencyContactName = 'Emergency contact name is required';
-    if (!form.emergencyContactPhone.trim()) errs.emergencyContactPhone = 'Emergency contact phone is required';
+    if (!form.healthNumber9.trim()) errs.healthNumber9 = 'MB Health # (9 digit) is required';
+    if (!form.healthNumber6.trim()) errs.healthNumber6 = 'MB Health # (6 digit) is required';
     return errs;
   }
 
@@ -49,19 +49,18 @@ function HealthInfoStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           id: appId,
           attributes: {
-            field_health_number: form.healthNumber,
-            field_emergency_contact_name: form.emergencyContactName,
-            field_emergency_contact_phone: form.emergencyContactPhone,
+            field_mb_health_number_9_digit: form.healthNumber9,
+            field_mb_health_number_6_digit: form.healthNumber6,
             field_allergies: form.allergies,
-            field_medications: form.medications,
+            field_medications_used_fr_2b9881: form.medications,
             field_medical_restrictions: form.medicalRestrictions,
           },
         },
       };
-      const updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+      const updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       dispatch(setCurrentApplication(updated.data));
       navigate('/apply/guardian-info');
     } catch (err) {
@@ -84,20 +83,37 @@ function HealthInfoStep() {
 
       <form onSubmit={handleNext} noValidate>
         <div className="form-group">
-          <label htmlFor="hi-healthNumber">
-            Manitoba Health Number<span className="required-mark" aria-hidden="true">*</span>
+          <label htmlFor="hi-healthNumber9">
+            MB Health # (9 Digit)<span className="required-mark" aria-hidden="true">*</span>
           </label>
           <input
-            id="hi-healthNumber"
+            id="hi-healthNumber9"
             type="text"
-            value={form.healthNumber}
-            onChange={(e) => handleChange('healthNumber', e.target.value)}
+            value={form.healthNumber9}
+            onChange={(e) => handleChange('healthNumber9', e.target.value)}
             aria-required="true"
-            aria-invalid={errors.healthNumber ? 'true' : 'false'}
-            aria-describedby={errors.healthNumber ? 'hi-healthNumber-err' : undefined}
+            aria-invalid={errors.healthNumber9 ? 'true' : 'false'}
+            aria-describedby={errors.healthNumber9 ? 'hi-healthNumber9-err' : undefined}
             placeholder="e.g. 123456789"
           />
-          {errors.healthNumber && <span id="hi-healthNumber-err" className="field-error" role="alert">{errors.healthNumber}</span>}
+          {errors.healthNumber9 && <span id="hi-healthNumber9-err" className="field-error" role="alert">{errors.healthNumber9}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="hi-healthNumber6">
+            MB Health # (6 Digit)<span className="required-mark" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="hi-healthNumber6"
+            type="text"
+            value={form.healthNumber6}
+            onChange={(e) => handleChange('healthNumber6', e.target.value)}
+            aria-required="true"
+            aria-invalid={errors.healthNumber6 ? 'true' : 'false'}
+            aria-describedby={errors.healthNumber6 ? 'hi-healthNumber6-err' : undefined}
+            placeholder="e.g. 123456"
+          />
+          {errors.healthNumber6 && <span id="hi-healthNumber6-err" className="field-error" role="alert">{errors.healthNumber6}</span>}
         </div>
 
         <fieldset style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem' }}>

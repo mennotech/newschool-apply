@@ -10,7 +10,7 @@ entity_type: node
 bundle: application_full_middle_years
 label: Applying For Grade
 description: 'Section: Application Identity'
-required: true
+required: false
 translatable: false
 default_value: {}
 default_value_callback: ''

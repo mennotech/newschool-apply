@@ -18,7 +18,7 @@ function GuardianInfoStep() {
     secondaryGuardianName: attrs.field_secondary_guardian_name || '',
     secondaryGuardianPhone: attrs.field_secondary_guardian_phone || '',
     secondaryGuardianEmail: attrs.field_secondary_guardian_email || '',
-    householdStatus: attrs.field_household_status || '',
+    householdStatus: attrs.field_household_relations_e12444 || '',
     studentLivesWith: attrs.field_student_lives_with || '',
     custodyDescription: attrs.field_custody_description || '',
   });
@@ -33,9 +33,6 @@ function GuardianInfoStep() {
 
   function validate() {
     const errs = {};
-    if (!form.primaryGuardianName.trim()) errs.primaryGuardianName = 'Primary guardian name is required';
-    if (!form.primaryGuardianPhone.trim()) errs.primaryGuardianPhone = 'Primary guardian phone is required';
-    if (!form.householdStatus) errs.householdStatus = 'Household status is required';
     if (!form.studentLivesWith.trim()) errs.studentLivesWith = 'Please indicate who the student lives with';
     return errs;
   }
@@ -53,22 +50,16 @@ function GuardianInfoStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           id: appId,
           attributes: {
-            field_primary_guardian_name: form.primaryGuardianName,
-            field_primary_guardian_phone: form.primaryGuardianPhone,
-            field_primary_guardian_email: form.primaryGuardianEmail,
-            field_secondary_guardian_name: form.secondaryGuardianName,
-            field_secondary_guardian_phone: form.secondaryGuardianPhone,
-            field_secondary_guardian_email: form.secondaryGuardianEmail,
-            field_household_status: form.householdStatus,
+            field_household_relations_e12444: form.householdStatus,
             field_student_lives_with: form.studentLivesWith,
             field_custody_description: form.custodyDescription,
           },
         },
       };
-      const updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+      const updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       dispatch(setCurrentApplication(updated.data));
       navigate('/apply/additional-support');
     } catch (err) {

@@ -6,9 +6,12 @@ import * as drupalClient from '../api/drupalClient';
 
 const BUNDLE_LABELS = {
   partial_programming: 'Partial Programming',
-  full_early_years: 'Full Early Years',
-  full_middle_years: 'Full Middle Years',
-  full_senior_years: 'Full Senior Years',
+  application: 'Application',
+};
+
+const RESOURCE_BY_TYPE = {
+  'node--application_partial_programming': 'application_partial_programming',
+  'node--application': 'application',
 };
 
 const STATUS_LABELS = {
@@ -41,10 +44,34 @@ function DashboardPage() {
     setLoading(true);
     setLoadError('');
     try {
-      const data = await drupalClient.get(
-        `/jsonapi/node/application?filter[uid.id][value]=${user.uid}&include=field_student`
-      );
-      setApplications(data.data || []);
+      const queries = [
+        `/jsonapi/node/application_partial_programming?filter[uid.id][value]=${user.uid}&include=field_student`,
+        `/jsonapi/node/application?filter[uid.id][value]=${user.uid}&include=field_student`,
+      ];
+      const results = await Promise.allSettled(queries.map((q) => drupalClient.get(q)));
+
+      const succeeded = results.filter((r) => r.status === 'fulfilled');
+      if (succeeded.length === 0) {
+        throw new Error('Failed to load applications');
+      }
+
+      const merged = [];
+      const seen = new Set();
+      succeeded.forEach((result) => {
+        (result.value?.data || []).forEach((app) => {
+          if (app?.id && !seen.has(app.id)) {
+            seen.add(app.id);
+            merged.push(app);
+          }
+        });
+      });
+
+      merged.sort((a, b) => {
+        const aTime = new Date(a?.attributes?.created || 0).getTime();
+        const bTime = new Date(b?.attributes?.created || 0).getTime();
+        return bTime - aTime;
+      });
+      setApplications(merged);
     } catch (err) {
       setLoadError(err.message || 'Failed to load applications');
     } finally {
@@ -59,7 +86,8 @@ function DashboardPage() {
   async function handleDelete(app) {
     setDeleteError('');
     try {
-      await drupalClient.delete_(`/jsonapi/node/application/${app.id}`);
+      const resource = RESOURCE_BY_TYPE[app.type] || 'application_partial_programming';
+      await drupalClient.delete_(`/jsonapi/node/${resource}/${app.id}`);
       setApplications((prev) => prev.filter((a) => a.id !== app.id));
       setDeleteConfirm(null);
     } catch (err) {
@@ -70,13 +98,12 @@ function DashboardPage() {
   async function handleNewApplication(bundle) {
     setShowBundleModal(false);
     try {
-      const data = await drupalClient.post('/jsonapi/node/application', {
+      const data = await drupalClient.post('/jsonapi/node/application_partial_programming', {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           attributes: {
             title: `Application - ${BUNDLE_LABELS[bundle] || bundle}`,
-            field_application_bundle: bundle,
-            field_status: 'draft',
+            field_application_status: 'draft',
           },
         },
       });
@@ -101,11 +128,12 @@ function DashboardPage() {
   };
 
   const getStatus = (app) => {
-    return app.attributes?.field_status || 'draft';
+    return app.attributes?.field_application_status || app.attributes?.field_status || 'draft';
   };
 
   const getBundle = (app) => {
-    const bundle = app.attributes?.field_application_bundle;
+    const bundle = app.attributes?.field_application_bundle ||
+      (app.type === 'node--application' ? 'application' : 'partial_programming');
     return BUNDLE_LABELS[bundle] || bundle || 'Application';
   };
 
@@ -176,8 +204,8 @@ function DashboardPage() {
                 <div className="application-card-meta">
                   <div>Student: {getStudentName(app)}</div>
                   <div>Started: {getStartDate(app)}</div>
-                  {app.attributes?.field_applying_grade && (
-                    <div>Applying for Grade: {app.attributes.field_applying_grade}</div>
+                  {(app.attributes?.field_student_applying_for_grade || app.attributes?.field_applying_grade) && (
+                    <div>Applying for Grade: {app.attributes.field_student_applying_for_grade || app.attributes.field_applying_grade}</div>
                   )}
                 </div>
                 <div className="application-card-actions">

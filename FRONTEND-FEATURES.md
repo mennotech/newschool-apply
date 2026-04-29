@@ -19,7 +19,7 @@ The React frontend has been built at `frontend/`. The following summarizes what 
 - `StepIndicator` component with completed/active/locked states and `STEP_DEFS` export
 - `AlertBanner` dismissible alert component (success/error/warning/info)
 - All 8 application steps: StudentInfo, HealthInfo, GuardianInfo, AdditionalSupport, Questionnaire, Commitment (with canvas signature pad), Documents (drag-drop file upload), Review
-- Application bundle type selection modal on dashboard (partial_programming, full_early_years, full_middle_years, full_senior_years)
+- Application type selection modal on dashboard currently enables partial_programming
 - Test suite with Jest + React Testing Library + MSW: `drupalClient.test.js`, `authSlice.test.js`, `LoginPage.test.js`, `ProtectedRoute.test.js`
 - `.env.test` for test environment configuration
 

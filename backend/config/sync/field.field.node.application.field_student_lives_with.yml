@@ -10,7 +10,7 @@ entity_type: node
 bundle: application
 label: Student Lives With
 description: 'Section: Application Identity'
-required: true
+required: false
 translatable: false
 default_value: {}
 default_value_callback: ''

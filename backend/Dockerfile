@@ -117,7 +117,8 @@ RUN install -d -o www-data -g www-data -m 0770 /var/drupal-db
 
 # Copy init script
 COPY init.sh /init.sh
-RUN chmod +x /init.sh
+RUN sed -i 's/\r$//' /init.sh \
+    && chmod +x /init.sh
 
 EXPOSE 80
 

@@ -12,10 +12,10 @@ function AdditionalSupportStep() {
   const attrs = currentApplication?.attributes || {};
 
   const [form, setForm] = useState({
-    academicSupport: attrs.field_academic_support || '',
-    diagnosisAssessments: attrs.field_diagnosis_assessments || '',
-    psychologicalSupport: attrs.field_psychological_support || '',
-    reviewed: attrs.field_additional_support_reviewed || false,
+    academicSupport: attrs.field_academic_support_details || '',
+    diagnosisAssessments: attrs.field_diagnosis_assessmen_18b9ab || '',
+    psychologicalSupport: attrs.field_psychological_suppo_e92629 || '',
+    reviewed: attrs.field_support_declaration_265eb8 || false,
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -47,17 +47,17 @@ function AdditionalSupportStep() {
       const appId = currentApplication?.id;
       const payload = {
         data: {
-          type: 'node--application',
+          type: 'node--application_partial_programming',
           id: appId,
           attributes: {
-            field_academic_support: form.academicSupport,
-            field_diagnosis_assessments: form.diagnosisAssessments,
-            field_psychological_support: form.psychologicalSupport,
-            field_additional_support_reviewed: form.reviewed,
+            field_academic_support_details: form.academicSupport,
+            field_diagnosis_assessmen_18b9ab: form.diagnosisAssessments,
+            field_psychological_suppo_e92629: form.psychologicalSupport,
+            field_support_declaration_265eb8: form.reviewed,
           },
         },
       };
-      const updated = await drupalClient.patch(`/jsonapi/node/application/${appId}`, payload);
+      const updated = await drupalClient.patch(`/jsonapi/node/application_partial_programming/${appId}`, payload);
       dispatch(setCurrentApplication(updated.data));
       navigate('/apply/questionnaire');
     } catch (err) {

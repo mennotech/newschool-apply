@@ -21,7 +21,12 @@ function ApplicationDetailPage() {
       setLoading(true);
       setError('');
       try {
-        const data = await drupalClient.get(`/jsonapi/node/application/${id}?include=field_student`);
+        let data;
+        try {
+          data = await drupalClient.get(`/jsonapi/node/application_partial_programming/${id}?include=field_student`);
+        } catch (_firstErr) {
+          data = await drupalClient.get(`/jsonapi/node/application/${id}?include=field_student`);
+        }
         setApplication(data.data);
       } catch (err) {
         setError(err.message || 'Failed to load application');
@@ -68,7 +73,7 @@ function ApplicationDetailPage() {
   }
 
   const attrs = application.attributes || {};
-  const status = attrs.field_status || 'draft';
+  const status = attrs.field_application_status || attrs.field_status || 'draft';
 
   return (
     <div className="page">
@@ -120,10 +125,10 @@ function ApplicationDetailPage() {
                 {[attrs.field_student_first_name, attrs.field_student_last_name].filter(Boolean).join(' ')}
               </span>
             </div>
-            {attrs.field_applying_grade && (
+            {(attrs.field_student_applying_for_grade || attrs.field_applying_grade) && (
               <div className="review-field">
                 <span className="review-field-label">Applying for Grade</span>
-                <span className="review-field-value">{attrs.field_applying_grade}</span>
+                <span className="review-field-value">{attrs.field_student_applying_for_grade || attrs.field_applying_grade}</span>
               </div>
             )}
           </div>
