@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_application_status
+    - node.type.application_full_early_years
+id: node.application_full_early_years.field_application_status
+field_name: field_application_status
+entity_type: node
+bundle: application_full_early_years
+label: Application Status
+description: 'Section: Application Identity'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

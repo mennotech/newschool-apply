@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_emergency_contact_person
+    - node.type.application_partial_programming
+    - node.type.person
+id: node.application_partial_programming.field_emergency_contact_person
+field_name: field_emergency_contact_person
+entity_type: node
+bundle: application_partial_programming
+label: Emergency Contact
+description: 'Section: Health Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      person: person
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

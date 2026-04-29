@@ -1,0 +1,5 @@
+stripe_secret_key: ''
+stripe_webhook_secret: ''
+checkout_success_url: 'http://localhost:3000/application/payment-success?session_id={CHECKOUT_SESSION_ID}'
+checkout_cancel_url: 'http://localhost:3000/application/payment-cancel'
+fee_map: {}

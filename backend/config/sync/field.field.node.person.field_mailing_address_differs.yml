@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mailing_address_differs
+    - node.type.person
+id: node.person.field_mailing_address_differs
+field_name: field_mailing_address_differs
+entity_type: node
+bundle: person
+label: Mailing Address Different From Primary Address
+description: 'Section: Address Links'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

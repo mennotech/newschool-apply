@@ -1,0 +1,307 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for the newschool_payments module.
+ *
+ * Creates the payment content type and all its fields programmatically so
+ * the module is self-contained and does not require manual config import to
+ * become functional.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\NodeType;
+
+/**
+ * Implements hook_install().
+ */
+function newschool_payments_install() {
+  // Create the payment node type if it does not already exist.
+  if (!NodeType::load('payment')) {
+    $node_type = NodeType::create([
+      'type'        => 'payment',
+      'name'        => 'Payment',
+      'description' => 'Authoritative payment record for application fees.',
+      'new_revision' => FALSE,
+      'display_submitted' => FALSE,
+    ]);
+    $node_type->save();
+  }
+
+  _newschool_payments_create_fields();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function newschool_payments_uninstall() {
+  // Remove field instances attached to the payment bundle.
+  $field_names = [
+    'field_application',
+    'field_payer',
+    'field_amount_cents',
+    'field_currency',
+    'field_status',
+    'field_stripe_checkout_session_id',
+    'field_stripe_payment_intent_id',
+    'field_paid_at',
+    'field_last_stripe_event_id',
+    'field_receipt_url',
+  ];
+
+  foreach ($field_names as $field_name) {
+    $instance = FieldConfig::loadByName('node', 'payment', $field_name);
+    if ($instance) {
+      $instance->delete();
+    }
+  }
+
+  // Remove field storage definitions (only those unique to this module).
+  $module_storage_fields = [
+    'field_amount_cents',
+    'field_currency',
+    'field_status',
+    'field_stripe_checkout_session_id',
+    'field_stripe_payment_intent_id',
+    'field_paid_at',
+    'field_last_stripe_event_id',
+    'field_receipt_url',
+  ];
+
+  foreach ($module_storage_fields as $field_name) {
+    $storage = FieldStorageConfig::loadByName('node', $field_name);
+    if ($storage) {
+      $storage->delete();
+    }
+  }
+
+  // Delete the payment node type.
+  $node_type = NodeType::load('payment');
+  if ($node_type) {
+    $node_type->delete();
+  }
+}
+
+/**
+ * Creates all field storage and instance definitions for the payment bundle.
+ */
+function _newschool_payments_create_fields() {
+  $fields = _newschool_payments_field_definitions();
+
+  foreach ($fields as $field_name => $definition) {
+    // Create field storage if it does not exist.
+    if (!FieldStorageConfig::loadByName('node', $field_name)) {
+      FieldStorageConfig::create($definition['storage'])->save();
+    }
+
+    // Create field instance on the payment bundle if it does not exist.
+    if (!FieldConfig::loadByName('node', 'payment', $field_name)) {
+      FieldConfig::create($definition['instance'])->save();
+    }
+  }
+}
+
+/**
+ * Returns field storage and instance definitions for the payment content type.
+ *
+ * @return array
+ *   Keyed by field machine name, each value has 'storage' and 'instance' keys.
+ */
+function _newschool_payments_field_definitions() {
+  return [
+    'field_application' => [
+      'storage' => [
+        'field_name'  => 'field_application',
+        'entity_type' => 'node',
+        'type'        => 'entity_reference',
+        'settings'    => ['target_type' => 'node'],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_application',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Application',
+        'required'    => FALSE,
+        'settings'    => [
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => NULL,
+            'sort' => ['field' => '_none'],
+            'auto_create' => FALSE,
+          ],
+        ],
+      ],
+    ],
+
+    'field_payer' => [
+      'storage' => [
+        'field_name'  => 'field_payer',
+        'entity_type' => 'node',
+        'type'        => 'entity_reference',
+        'settings'    => ['target_type' => 'user'],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_payer',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Payer',
+        'required'    => FALSE,
+        'settings'    => [
+          'handler' => 'default:user',
+          'handler_settings' => [
+            'include_anonymous' => FALSE,
+          ],
+        ],
+      ],
+    ],
+
+    'field_amount_cents' => [
+      'storage' => [
+        'field_name'  => 'field_amount_cents',
+        'entity_type' => 'node',
+        'type'        => 'integer',
+        'settings'    => ['unsigned' => TRUE, 'size' => 'normal'],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_amount_cents',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Amount (cents)',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_currency' => [
+      'storage' => [
+        'field_name'  => 'field_currency',
+        'entity_type' => 'node',
+        'type'        => 'string',
+        'settings'    => ['max_length' => 8],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_currency',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Currency',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_status' => [
+      'storage' => [
+        'field_name'  => 'field_status',
+        'entity_type' => 'node',
+        'type'        => 'list_string',
+        'settings'    => [
+          'allowed_values' => [
+            'unpaid'   => 'Unpaid',
+            'pending'  => 'Pending',
+            'paid'     => 'Paid',
+            'failed'   => 'Failed',
+            'canceled' => 'Canceled',
+          ],
+          'allowed_values_function' => '',
+        ],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_status',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Payment Status',
+        'required'    => FALSE,
+        'default_value' => [['value' => 'unpaid']],
+      ],
+    ],
+
+    'field_stripe_checkout_session_id' => [
+      'storage' => [
+        'field_name'  => 'field_stripe_checkout_session_id',
+        'entity_type' => 'node',
+        'type'        => 'string',
+        'settings'    => ['max_length' => 255],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_stripe_checkout_session_id',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Stripe Checkout Session ID',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_stripe_payment_intent_id' => [
+      'storage' => [
+        'field_name'  => 'field_stripe_payment_intent_id',
+        'entity_type' => 'node',
+        'type'        => 'string',
+        'settings'    => ['max_length' => 255],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_stripe_payment_intent_id',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Stripe Payment Intent ID',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_paid_at' => [
+      'storage' => [
+        'field_name'  => 'field_paid_at',
+        'entity_type' => 'node',
+        'type'        => 'datetime',
+        'settings'    => ['datetime_type' => 'datetime'],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_paid_at',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Paid At',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_last_stripe_event_id' => [
+      'storage' => [
+        'field_name'  => 'field_last_stripe_event_id',
+        'entity_type' => 'node',
+        'type'        => 'string',
+        'settings'    => ['max_length' => 255],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_last_stripe_event_id',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Last Stripe Event ID',
+        'required'    => FALSE,
+      ],
+    ],
+
+    'field_receipt_url' => [
+      'storage' => [
+        'field_name'  => 'field_receipt_url',
+        'entity_type' => 'node',
+        'type'        => 'string',
+        'settings'    => ['max_length' => 2048],
+        'cardinality' => 1,
+      ],
+      'instance' => [
+        'field_name'  => 'field_receipt_url',
+        'entity_type' => 'node',
+        'bundle'      => 'payment',
+        'label'       => 'Receipt URL',
+        'required'    => FALSE,
+      ],
+    ],
+  ];
+}

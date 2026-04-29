@@ -1,0 +1,31 @@
+newschool_payments.session_info:
+  path: /api/session/info
+  defaults:
+    _controller: '\Drupal\newschool_payments\Controller\PaymentsController::sessionInfo'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+newschool_payments.checkout_session:
+  path: /api/payments/checkout-session
+  defaults:
+    _controller: '\Drupal\newschool_payments\Controller\PaymentsController::createCheckoutSession'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+newschool_payments.checkout_status:
+  path: /api/payments/checkout-status
+  defaults:
+    _controller: '\Drupal\newschool_payments\Controller\PaymentsController::checkoutStatus'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+newschool_payments.stripe_webhook:
+  path: /api/payments/stripe/webhook
+  defaults:
+    _controller: '\Drupal\newschool_payments\Controller\PaymentsController::stripeWebhook'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'

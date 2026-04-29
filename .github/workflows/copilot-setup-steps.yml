@@ -1,28 +1,78 @@
-name: Copilot Setup Steps (Stub)
+name: Copilot Setup Steps
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/copilot-setup-steps.yml'
+  push:
+    branches: [main, alpha1-launch3]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/copilot-setup-steps.yml'
 
 permissions:
   contents: read
 
 jobs:
-  backend-build:
-    name: Build Backend Image
+  backend-build-and-smoke-tests:
+    name: Backend — Build, Start, Smoke Test
     runs-on: ubuntu-latest
+    env:
+      DRUPAL_ADMIN_USER: admin
+      DRUPAL_ADMIN_PASS: password123
+      STRIPE_WEBHOOK_SECRET: whsec_ci_test_secret
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Stub step: confirms this workflow is intentionally minimal.
-      # Copilot cloud agent should extend this workflow with additional setup,
-      # health checks, and smoke tests as backend automation grows.
-      - name: Copilot extension note
-        run: |
-          echo "This is a starter workflow that builds the current backend."
-          echo "Extend this workflow in future tasks with environment setup,"
-          echo "container health checks, and backend smoke test execution."
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Build current backend
+      - name: Regenerate Drupal scaffold config
+        run: node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2 backend/config/sync
+
+      - name: Build backend image
         run: docker compose build backend
+
+      - name: Start backend container
+        run: docker compose up -d backend
+
+      - name: Wait for backend to become healthy
+        shell: pwsh
+        run: |
+          $maxAttempts = 60
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              $status = docker inspect --format '{{.State.Health.Status}}' (docker compose ps -q backend) 2>$null
+              if ($status -eq 'healthy') {
+                Write-Host "Backend is healthy after $i attempts."
+                exit 0
+              }
+            } catch {}
+            Write-Host "Attempt $i/$maxAttempts — waiting for backend health..."
+            Start-Sleep -Seconds 5
+          }
+          Write-Error "Backend did not become healthy in time."
+          exit 1
+
+      - name: Run backend smoke tests
+        run: |
+          pwsh ./backend/scripts/smoke/run-all.ps1 \
+            -BaseUrl 'http://localhost:8080' \
+            -AdminUser '${{ env.DRUPAL_ADMIN_USER }}' \
+            -AdminPass '${{ env.DRUPAL_ADMIN_PASS }}'
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: docker compose logs backend
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v

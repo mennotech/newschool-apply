@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_church_attending
+    - node.type.application_partial_programming
+id: node.application_partial_programming.field_church_attending
+field_name: field_church_attending
+entity_type: node
+bundle: application_partial_programming
+label: Church Attending
+description: 'Section: Student Information'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

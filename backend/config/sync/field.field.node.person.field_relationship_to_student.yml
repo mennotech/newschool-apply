@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_relationship_to_student
+    - node.type.person
+id: node.person.field_relationship_to_student
+field_name: field_relationship_to_student
+entity_type: node
+bundle: person
+label: Relationship To Student
+description: 'Section: Person Identity'
+required: true
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

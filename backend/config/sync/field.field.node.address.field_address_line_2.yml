@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_address_line_2
+    - node.type.address
+id: node.address.field_address_line_2
+field_name: field_address_line_2
+entity_type: node
+bundle: address
+label: Address Line 2
+description: 'Section: Address'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string

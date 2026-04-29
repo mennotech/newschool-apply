@@ -15,7 +15,7 @@ catalog:
             - key: student_first_name
               label: First Name
               type: text
-              required: true
+              required: false
             - key: student_middle_name
               label: Middle Name
               type: text
@@ -23,7 +23,7 @@ catalog:
             - key: student_last_name
               label: Last Name
               type: text
-              required: true
+              required: false
             - key: student_preferred_name
               label: Preferred Name
               type: text
@@ -31,28 +31,28 @@ catalog:
             - key: student_gender
               label: Gender
               type: radio
-              required: true
+              required: false
               options: [male, female]
             - key: student_birth_date
               label: Birth Date
               type: date
-              required: true
+              required: false
             - key: student_current_grade
               label: Current Grade
               type: select
-              required: true
+              required: false
             - key: primary_home_phone
               label: Primary / Home Phone Number
               type: phone
-              required: true
+              required: false
             - key: physical_address
               label: Physical Address
               type: address_reference
-              required: true
+              required: false
             - key: mailing_address_differs
               label: Is Mailing Address Different Than Physical Address?
               type: radio
-              required: true
+              required: false
               options: [yes, no]
             - key: mailing_address
               label: Mailing Address
@@ -61,7 +61,7 @@ catalog:
             - key: citizenship_status
               label: Citizenship Status
               type: radio
-              required: true
+              required: false
               options:
                 - canadian_citizen
                 - permanent_resident
@@ -71,7 +71,7 @@ catalog:
             - key: attended_mb_school_before
               label: Have You Attended a Manitoba School in the Past?
               type: radio
-              required: true
+              required: false
               options: [yes, no]
             - key: church_attending
               label: Church Attending
@@ -88,11 +88,11 @@ catalog:
             - key: mb_health_number_9_digit
               label: 'MB Health # - 9 Digit'
               type: text
-              required: true
+              required: false
             - key: mb_health_number_6_digit
               label: 'MB Health # - 6 Digit'
               type: text
-              required: true
+              required: false
             - key: emergency_contact_person
               label: Emergency Contact
               type: person_reference
@@ -149,15 +149,15 @@ catalog:
             - key: questionnaire_contact_person
               label: Questionnaire Contact Person
               type: person_reference
-              required: true
+              required: false
             - key: christian_testimony
               label: Christian Testimony Description
               type: textarea
-              required: true
+              required: false
             - key: school_interest_reason
               label: Reason for Wanting Child to Attend Steinbach Christian School
               type: textarea
-              required: true
+              required: false
         - id: statement_of_commitment
           title: Statement of Commitment
           description: Consent acknowledgement and signature.
@@ -165,4 +165,4 @@ catalog:
             - key: parent_guardian_signature
               label: Parent/Guardian Signature
               type: signature
-              required: true
+              required: false

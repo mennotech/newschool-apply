@@ -1,0 +1,35 @@
+newschool_payments.settings:
+  type: config_object
+  label: 'NewSchool Payments settings'
+  mapping:
+    stripe_secret_key:
+      type: string
+      label: 'Stripe secret key'
+    stripe_webhook_secret:
+      type: string
+      label: 'Stripe webhook signing secret'
+    checkout_success_url:
+      type: string
+      label: 'Checkout success URL'
+    checkout_cancel_url:
+      type: string
+      label: 'Checkout cancel URL'
+    fee_map:
+      type: sequence
+      label: 'Fee mapping per application bundle'
+      sequence:
+        type: mapping
+        label: 'Bundle fee config'
+        mapping:
+          enabled:
+            type: boolean
+            label: 'Enabled'
+          amount_cents:
+            type: integer
+            label: 'Amount in cents'
+          currency:
+            type: string
+            label: 'Currency code'
+          label:
+            type: string
+            label: 'Fee label'

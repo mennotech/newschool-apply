@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * NewSchool Payments module.
+ *
+ * Provides Stripe Checkout integration for application fees. All payment
+ * state is managed server-side; the frontend only renders UI based on
+ * backend responses.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function newschool_payments_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name === 'help.page.newschool_payments') {
+    return '<p>' . t('Provides Stripe payment processing for NewSchool Apply application fees.') . '</p>';
+  }
+}

@@ -144,6 +144,7 @@
 - `application_partial_programming` currently carries the migrated partial-program field set.
 - `application_full_early_years`, `application_full_middle_years`, and `application_full_senior_years` are scaffolded placeholders for future form-specific fields.
 - Dedicated application bundles inherit the reusable application field set while owning their own application-type-specific attributes.
+- Draft workflow support: application field definitions are scaffolded to allow partial draft saves; frontend and workflow submit checks enforce completion before final submission.
 
 ### Person Bundle (`person`)
 

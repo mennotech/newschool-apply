@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Full Middle Years Application
+type: application_full_middle_years
+description: Reserved bundle for a future full middle years application.
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

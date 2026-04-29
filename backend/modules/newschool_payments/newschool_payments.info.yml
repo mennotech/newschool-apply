@@ -1,0 +1,10 @@
+name: NewSchool Payments
+type: module
+description: Payment processing for NewSchool Apply using Stripe Checkout. Provides the payment content type, checkout session creation, webhook handling, and payment status endpoints.
+package: NewSchool Apply
+core_version_requirement: ^10
+dependencies:
+  - drupal:node
+  - drupal:rest
+  - drupal:serialization
+  - drupal:basic_auth

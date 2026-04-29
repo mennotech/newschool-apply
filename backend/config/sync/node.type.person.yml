@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Person
+type: person
+description: 'Reusable PowerSchool-style person/contact record for parents, guardians, and emergency contacts.'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

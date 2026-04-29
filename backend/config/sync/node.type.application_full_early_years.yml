@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+name: Full Early Years Application
+type: application_full_early_years
+description: Reserved bundle for a future full early years application.
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false

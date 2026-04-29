@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_section_3_reviewed
+    - node.type.application_full_senior_years
+id: node.application_full_senior_years.field_section_3_reviewed
+field_name: field_section_3_reviewed
+entity_type: node
+bundle: application_full_senior_years
+label: Section 3 Reviewed
+description: 'Section: Application Review Tracking'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

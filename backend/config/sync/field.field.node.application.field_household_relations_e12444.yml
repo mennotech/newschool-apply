@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_household_relations_e12444
+    - node.type.application
+id: node.application.field_household_relations_e12444
+field_name: field_household_relations_e12444
+entity_type: node
+bundle: application
+label: 'Student''s Parents Are'
+description: 'Section: Application Identity'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string

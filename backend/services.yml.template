@@ -1,0 +1,21 @@
+parameters:
+  cors.config:
+    enabled: true
+    allowedHeaders:
+      - 'x-csrf-token'
+      - 'content-type'
+      - 'accept'
+      - 'origin'
+      - 'authorization'
+    allowedMethods:
+      - GET
+      - POST
+      - PATCH
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowedOrigins:
+      - '{CORS_ORIGINS}'
+    exposedHeaders: false
+    maxAge: false
+    supportsCredentials: true
