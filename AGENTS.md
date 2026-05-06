@@ -5,19 +5,19 @@ This repository uses AI-assisted development under strict architectural, securit
 ## Repository Structure
 
 ```
-/frontend/    ← Plain React application (JavaScript, npm)
+/frontend/    ← Plain JavaScript application (Modern browser )
 /backend/     ← Drupal container (Dockerfile, initialization script, config exports)
 ```
 
-- Work in `/frontend/` for all React UI changes.
+- Work in `/frontend/` for all frontend UI changes.
 - Work in `/backend/` for all Drupal configuration, initialization scripts, and the Dockerfile.
 - In the backend container, Drush is available at `/var/www/html/vendor/bin/drush` and is not on `PATH` by default.
 - **Never move business logic from `/backend/` to `/frontend/`.** If a feature requires new logic, implement it in Drupal first.
 - The backend defaults to **SQLite** for lightweight local development and testing. Do not change the database engine without maintainer approval.
 
 ## **Key Non-Negotiable Principles**  
-- **Drupal is the Single Source of Truth** – All critical logic (authentication, authorization, permissions, workflow, business rules, data validation) lives in **Drupal (backend)**. The **React frontend** never overrides or duplicates these decisions.  
-- **Frontend = UI, Backend = Logic** – The React app **renders UI, collects user input, and calls Drupal APIs**. It should **not contain business logic** or make security/permission decisions. If it affects data correctness or access control, it belongs in Drupal, not in React.  
+- **Drupal is the Single Source of Truth** – All critical logic (authentication, authorization, permissions, workflow, business rules, data validation) lives in **Drupal (backend)**. The **JS frontend** never overrides or duplicates these decisions.  
+- **Frontend = UI, Backend = Logic** – The JS frontend **renders UI, collects user input, and calls Drupal APIs**. It should **not contain business logic** or make security/permission decisions. If it affects data correctness or access control, it belongs in Drupal, not in the frontend.  
 - **No Direct Auth or Token Handling in Frontend** – **Drupal manages all authentication**. The frontend must never handle OAuth flows, tokens (JWTs, access/refresh tokens), or credentials storage. Use Drupal’s provided endpoints for login and rely on Drupal’s session cookie.  
 - **No Unapproved Dependencies** – Do not add or update third-party libraries unless explicitly approved by maintainers. Use built-in browser APIs and existing project utilities. This ensures supply-chain security and keeps the bundle lean.  
 - **Security and Privacy First** – Never expose secrets or sensitive data on the client. Never log personal data (PII) to console. Don’t store sensitive info in local storage, etc. Follow all privacy regulations (e.g. FERPA, COPPA) and handle user data with care.  
@@ -33,17 +33,17 @@ This repository uses AI-assisted development under strict architectural, securit
 - Data validation and sanitization  
 - Access control to content or actions  
 
-If any logic **affects correctness, security, permissions, or decision-making**, it **must reside in Drupal**, not in the React frontend. The frontend should defer to Drupal’s responses for anything beyond basic UI interaction. The **frontend never assumes or enforces critical conditions** on its own.
+If any logic **affects correctness, security, permissions, or decision-making**, it **must reside in Drupal**, not in the JS frontend. The frontend should defer to Drupal’s responses for anything beyond basic UI interaction. The **frontend never assumes or enforces critical conditions** on its own.
 
 **Decision Guide – Frontend or Backend?**  
 - **If** a piece of logic **impacts data integrity, user permissions, or business outcomes**, **implement it in Drupal**. (The frontend should call an API or wait for Drupal to decide and then merely reflect that decision in the UI.)  
-- **If** the logic is **purely presentational or user convenience** (for example, formatting a timestamp or enabling a button when form fields are filled), it **can be in React**.  
+- **If** the logic is **purely presentational or user convenience** (for example, formatting a timestamp or enabling a button when form fields are filled), it **can be in the JS frontend**.  
 - **When in doubt, put logic in Drupal or seek clarification.** It’s safer to have Drupal decide and instruct the frontend than the opposite.  
 
 *Example*: Suppose the application needs to verify if a user meets an age requirement. **Compliant**: The frontend sends the user's birth date to a Drupal API endpoint and relies on the response (e.g., an `"eligible": true/false` flag) to decide the next step. **Non-compliant**: The frontend calculates the age itself and blocks or allows progress based on that, which bypasses Drupal’s authority and could be tampered with by the user.
 
-## 2. **Frontend Role & Limitations (Plain React)**  
-The frontend is a plain React application, used **only** for user interface and interaction. It is **not** a source of truth for business logic. 
+## 2. **Frontend Role & Limitations (Plain JavaScript)**  
+The frontend is a plain JavaScript application , used **only** for user interface and interaction. It is **not** a source of truth for business logic. 
 
 **Allowed frontend responsibilities:** *(UI/UX only)*  
 - Rendering the UI (components, layouts, styling) and updating it based on application state/data from Drupal.  
@@ -66,13 +66,13 @@ If unsure whether something belongs in the frontend, assume it **does not** if i
 ## 3. **Authentication and Identity (CRITICAL)**  
 All authentication and identity verification are handled by **Drupal** – this is a hard rule for security and consistency.
 
-- **Drupal as Auth Authority**: The frontend should treat Drupal as the only service that can log users in or out. Under no circumstances will the React app directly authenticate a user with an external provider (Google, Microsoft, etc.) or issue its own tokens.  
+- **Drupal as Auth Authority**: The frontend should treat Drupal as the only service that can log users in or out. Under no circumstances will the JS frontend directly authenticate a user with an external provider (Google, Microsoft, etc.) or issue its own tokens.  
 - **Supported Login Methods** (via Drupal):  
   - Google OAuth (handled by Drupal’s OAuth module/configuration)  
   - Microsoft consumer account OAuth  
   - Email + Password (Drupal’s local auth as a fallback)  
   In all cases, Drupal manages the outcome and issues a session (typically via a session cookie once logged in). External providers are used **only through Drupal’s integration**.  
-- **Frontend Login Actions**: The React app may **initiate** login by redirecting the browser to a Drupal-managed OAuth URL (for Google/Microsoft login), or by collecting email/password and making a POST request to Drupal’s login endpoint. After that, Drupal takes over (redirects or responds with success/failure).  
+- **Frontend Login Actions**: The JS frontend may **initiate** login by redirecting the browser to a Drupal-managed OAuth URL (for Google/Microsoft login), or by collecting email/password and making a POST request to Drupal's login endpoint. After that, Drupal takes over (redirects or responds with success/failure).
   - After a successful login, Drupal will maintain the session via a cookie. The frontend should simply treat the user as logged-in based on Drupal’s session (e.g., by checking an API endpoint or response).  
   - For any state-changing API calls (POST, PATCH, DELETE), the frontend must first fetch a CSRF token from Drupal’s `/session/token` endpoint and include it as an `X-CSRF-Token` header. **Do not store the CSRF token long-term**; fetch it fresh when needed so it stays in sync with the session.  
 - **Forbidden Frontend Auth Behavior**:  
@@ -90,7 +90,7 @@ All end-users of the application are represented as **local Drupal user accounts
 
 - **Single Source of User Data**: Even if a user logs in via Google or Microsoft, Drupal creates/uses a corresponding local user account internally. External identity providers are only an authentication mechanism; all user profiles and roles live in Drupal.  
 - **Initial Roles and Onboarding**: On a user’s first login, Drupal may assign a temporary or limited role (for example, `parent_pending`) and require some post-login steps (like accepting terms, completing profile info, linking to a student). These flows are enforced by Drupal’s business logic. The frontend should not assume a new user’s role or skip required steps; it should follow the API/data from Drupal (e.g., if an “accept terms” flag is not completed, Drupal might direct them to that step).  
-- **Never Assume Permissions on Frontend**: The React app must never grant or restrict access based on a hardcoded notion of a user’s role or status. For example, do not code “if user.role == 'admin' then show admin panel” using frontend knowledge alone. Instead, the backend will provide data (like an API endpoint listing admin items, or a field in the user data) that the frontend can use. If the backend says the user has no access to something, the frontend must respect that (e.g., by not displaying it or by handling a refused request gracefully).  
+- **Never Assume Permissions on Frontend**: The JS frontend must never grant or restrict access based on a hardcoded notion of a user's role or status. For example, do not code "if user.role == 'admin' then show admin panel" using frontend knowledge alone. Instead, the backend will provide data (like an API endpoint listing admin items, or a field in the user data) that the frontend can use. If the backend says the user has no access to something, the frontend must respect that (e.g., by not displaying it or by handling a refused request gracefully).
 - **Always Confirm on Backend**: For any action, especially those that modify data or access protected resources, the frontend should attempt the action via the API and handle a success or an "access denied" error accordingly. Never purely rely on a frontend check to allow or disallow an action.
 
 ## 5. **API Usage and Data Contracts**  
@@ -99,7 +99,7 @@ All data exchanged between frontend and backend should use Drupal’s JSON:API (
 - **Follow JSON:API Conventions**: Use the endpoints and data format provided by Drupal’s JSON:API. This typically means requests and responses have a structure like `data.attributes.*` for fields and `data.relationships.*` for linked entities. Always format requests as documented (correct HTTP methods, headers, and JSON structure).  
 - **Do Not Invent Fields or Endpoints**: **Never guess** or introduce new API fields, query parameters, or endpoints that aren’t in Drupal’s documentation or responses. For example, don’t assume adding a field to a POST will do something unless it’s documented. If a needed piece of data or functionality is not provided by the API, that means either the frontend shouldn’t have it or you need to ask for a backend change – do not hack around it on your own.  
 - **Error Handling**: Assume API calls can fail or be rejected. Always implement error handling for fetches/XHR: e.g., handle 4xx responses (validation errors, forbidden, not found) and 5xx responses (server errors). Provide the user with clear feedback based on error messages returned by Drupal.  
-- **No Hardcoded URLs or Magic Strings**: The base URL for Drupal’s API, as well as any other environment-specific config, must come from configuration (environment variables like `REACT_APP_DRUPAL_BASE_URL`). Never hardcode the production URL or endpoint paths in the code. This ensures the app can be easily pointed to different environments (dev, staging, prod) and avoids mistakes.  
+- **No Hardcoded URLs or Magic Strings**: The base URL for Drupal's API, as well as any other environment-specific config, must come from configuration (environment variables like `DRUPAL_BASE_URL`). Never hardcode the production URL or endpoint paths in the code. This ensures the app can be easily pointed to different environments (dev, staging, prod) and avoids mistakes.
 - **Respect the Backend Contract**: If Drupal says a field is read-only or a certain sequence is required (e.g., you must create a student profile before an application), the frontend should follow that flow. Don’t try to manipulate or shortcut the process.  
 - **Surface Backend Errors to Users**: When Drupal returns validation errors or other issues (usually in a structured error response), display those to the user in context. For instance, if the API says an email is already taken, show that message on the form. The frontend should not suppress or replace valid server error messages except to rephrase technical jargon when needed.
 
@@ -130,12 +130,12 @@ Code should be written in a clean, maintainable style that aligns with project c
 
 - **Clarity Over Cleverness**: Prioritize readability. Future maintainers (or AI agents) should easily understand the code. Avoid overly complex or “magical” implementations when a straightforward approach works.  
 - **Explicit is Better**: Be explicit in code and data flow. For example, prefer clear variable names and simple functions over deeply nested abstractions. Avoid hidden side effects; functions should do what they say.  
-- **Small, Focused Components**: In React, create small, composable components. Each component should ideally manage one idea or UI section. This makes them easier to reuse and test. If a component is getting large or handling many concerns, consider breaking it down.  
-- **Avoid Global Mutable State**: Don't introduce new global variables or singletons for sharing state. Use React state/props, context, or **Redux** (the project's standard state management library) in a controlled way. Global state makes the app hard to predict. Do not introduce alternative state management libraries without maintainer approval.
-- **Environment Config**: All environment-specific values (API endpoints, keys, feature flags) must come from **environment variables** (e.g., `REACT_APP_*` variables). Never hardcode environment-specific URLs or credentials in the code. This ensures the app can be configured for different deployments without code changes.  
+- **Small, Focused Modules**: Write small, focused JavaScript modules and UI components. Each module should ideally manage one idea or UI section. This makes them easier to reuse and test. If a module is getting large or handling many concerns, consider breaking it down.  
+- **Avoid Global Mutable State**: Don't introduce new global variables or singletons for sharing state. Use plain JS module-level state or a lightweight observable pattern in a controlled way. Global state makes the app hard to predict. Do not introduce third-party state management frameworks without maintainer approval.
+- **Environment Config**: All environment-specific values (API endpoints, keys, feature flags) must come from **environment variables** (e.g., `FRONTEND_*` variables, accessed via `import.meta.env`). Never hardcode environment-specific URLs or credentials in the code. This ensures the app can be configured for different deployments without code changes.  
 - **“Boring” Code is Good**: Use common patterns and simple constructs. It’s better that the code be a bit longer if it’s obvious, rather than a terse one-liner that’s hard to decipher. Aim for consistency with the project’s existing style.  
 
-*Example*: **Non-compliant**: Creating a complex inheritance hierachy or using overly abstract patterns for a form component, making it difficult to follow. **Compliant**: Writing a straightforward functional component for the form, perhaps broken into logical subcomponents, with clear state and props, even if it involves a bit of repetition.
+*Example*: **Non-compliant**: Creating a complex inheritance hierarchy or using overly abstract patterns for a form module, making it difficult to follow. **Compliant**: Writing a straightforward function-based module for the form, perhaps broken into logical sub-modules, with clear state and explicit data flow, even if it involves a bit of repetition.
 
 ## 9. **Forms and User Input Handling**  
 User input flows (like application forms, profile edits, etc.) need special care to balance good UX with strict backend validation. The frontend should never assume final authority on input correctness.
@@ -149,7 +149,7 @@ User input flows (like application forms, profile edits, etc.) need special care
 ## 10. **Security Best Practices**  
 Because this application handles personal data (including minors’ data), robust security practices are mandatory at all times. Many are implied above, but here are explicit rules:
 
-- **Escape Output by Default**: Always assume any data displayed could contain malicious content. Use React’s default escaping (e.g., avoid using `dangerouslySetInnerHTML` unless absolutely necessary and safe). Any dynamic content inserted into the DOM should be properly sanitized to prevent XSS (cross-site scripting).  
+- **Escape Output by Default**: Always assume any data displayed could contain malicious content. Never use `innerHTML` or similar APIs with user-supplied content. Use `textContent` for plain text and explicit sanitization when HTML rendering is truly required. Any dynamic content inserted into the DOM must be properly sanitized to prevent XSS (cross-site scripting).
 - **Never Trust Client Input**: Treat all data coming from the client (including form fields, query params, etc.) as potential malicious. Validation and permission checks must happen on the server. The frontend’s role is not to decide what’s safe, but *to send the data and show the results*.  
 - **No Secrets or Keys in Frontend**: Never embed secret keys, API credentials, or sensitive tokens in the JavaScript code. The frontend code can be viewed by end users, so keep all secrets on the server side. For third-party services, use them through the backend if they require secret keys.  
 - **Minimal Data Exposure**: Only request and expose in the UI the data that is needed for the current functionality. Do not fetch extra sensitive information “just in case”. The backend will ensure users only get what they are allowed to see; the frontend should not try to circumvent or cache beyond necessity.  
@@ -164,21 +164,24 @@ Because this application handles personal data (including minors’ data), robus
 Handling student and family data means we must comply with privacy laws like **FERPA** (for educational records) and possibly **COPPA** (for children’s online privacy) in addition to general data protection principles. The frontend must be designed to protect user privacy:
 
 - **No PII in Client Logs or Storage**: Never expose personally identifiable information (PII) in client-side logs, and **never store sensitive PII in the browser**. This includes names, dates of birth, addresses, student IDs, grades, etc. The browser environment (localStorage, sessionStorage, IndexedDB, cookies) is not a secure storage for such data. The only exception is the session cookie managed by Drupal (HttpOnly, not accessible via JS).  
-- **Ephemeral Data in Frontend**: Keep sensitive data only in memory/state as needed for the immediate UI, and purge it after use. For example, once a user has submitted a form and you have a success response, clear that form data from any client state. Don’t retain it. If the user navigates away, make sure no sensitive info sticks around in, say, a Redux store or in-memory cache.  
+- **Ephemeral Data in Frontend**: Keep sensitive data only in memory/state as needed for the immediate UI, and purge it after use. For example, once a user has submitted a form and you have a success response, clear that form data from any client state. Don't retain it. If the user navigates away, make sure no sensitive info sticks around in in-memory module state or caches.
 - **Clear Sensitive State on Navigation**: Implement cleanup on unmount or navigation for pages that handle sensitive info. For instance, if a user is viewing a student’s profile and then navigates away, ensure any state holding that profile data is disposed. This prevents data lingering if the device is left unattended or someone presses the Back button.  
 - **Backend-Driven Access**: Trust Drupal to enforce who can see what. The frontend should not independently decide to hide or show data based on its interpretation of user roles (which might be incomplete or spoofable). Instead, always fetch data from Drupal; if nothing comes or an error is returned, handle that (e.g., show “You do not have access”). This prevents mistakes where frontends might accidentally expose data thinking a user can see it.  
 - **No Unapproved Third-Party Tracking**: Do not include analytics or tracking scripts that capture user data without explicit approval. If analytics are used, they must not record form details or any PII, especially for underage users. We must be very cautious about any third-party scripts in order to remain compliant with privacy policies and disclose properly to users.  
 
-*Example*: After a user submits an application form, **compliant** behavior is to remove or reset that form data in the React state (and certainly not store it in localStorage). **Non-compliant** would be keeping a copy of the submitted data in a global variable or localStorage “for convenience”, which risks exposure if someone else uses the machine or if a cross-site scripting attack occurs.
+*Example*: After a user submits an application form, **compliant** behavior is to remove or reset that form data in JS state (and certainly not store it in localStorage). **Non-compliant** would be keeping a copy of the submitted data in a global variable or localStorage "for convenience", which risks exposure if someone else uses the machine or if a cross-site scripting attack occurs.
 
 ## 12. **Testing Expectations**  
 To maintain quality, any significant logic should be accompanied by tests. Testing ensures that the guardrails and behaviors described here remain intact over time.
 
 - **Write Tests for New Logic**: When you add or update functionality (especially anything involving decisions, calculations, or conditional rendering), also create appropriate tests (unit tests, integration tests, or end-to-end tests as relevant). If it’s purely presentational and static, tests are less critical, but for anything dynamic or computational, include tests.  
 - **Keep Tests Simple and Deterministic**: Tests should be easy to read and trust. Avoid overly clever test implementations – they should be as straightforward as possible. Each test should reliably pass or fail the same way every time (no flakiness).  
-- **Enforced Testing Stack**: The project uses **Jest** as the test runner, **React Testing Library (RTL)** for component tests, and **Mock Service Worker (MSW)** for mocking API calls. These are the only testing libraries permitted. Do not introduce alternatives without maintainer approval.  
-- **Test File Conventions**: Test files must be colocated with the code they test and named `*.test.js` (or `*.test.jsx`). Do not place tests in a separate top-level `__tests__` folder unless the file under test is a utility with no natural component home.  
-- **Running Tests**: Run the full test suite with `npm test -- --watchAll=false`. All tests must pass before a change is considered complete. AI agents must not mark a task done if tests are failing.  
+- **Enforced Testing Stack**: The project uses three testing layers — do not introduce alternatives without maintainer approval:  
+  - **Playwright** — a small number of high-value end-to-end tests that exercise critical user flows against a real running stack.  
+  - **Vitest** — unit and integration tests for frontend logic, API adapters, and business rules that live in the JS frontend.  
+  - **PHPUnit** — Drupal backend unit and kernel tests within the PHP codebase.  
+- **Test File Conventions**: Vitest test files must be colocated with the code they test and named `*.test.js`. Playwright tests live in a top-level `e2e/` directory. PHPUnit tests live under `backend/tests/`.  
+- **Running Tests**: Run the Vitest suite with `npx vitest run`. Run Playwright tests with `npx playwright test`. All tests must pass before a change is considered complete. AI agents must not mark a task done if tests are failing.  
 - **Cover Critical Paths**: Ensure that critical user flows have test coverage. For example, there should be tests covering a successful login, a failed login (unauthorized), a full application submission flow, etc. This helps catch any violation of the rules (like a front-end trying to do something the back-end should) early in development.  
 - **No Snapshot Tests for Logic**: Snapshot tests are for UI regression only. Do not rely on snapshots to test complex logic outcomes — write explicit assertions for those.
 
@@ -197,7 +200,7 @@ AI coding agents are used to assist with development. They **must adhere to thes
     pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser 'admin' -AdminPass 'password123'
     ```
     All tests must pass before considering work complete.
-  - Generate or update **React components** following the project's patterns (without altering architecture).
+  - Generate or update **JS modules and UI components** following the project's patterns (without altering architecture).
   - Write **integration code** to connect the frontend with Drupal's APIs (e.g., fetching data, submitting forms, handling responses), consistent with API specs.  
   - Create **UI flows** as specified by requirements, ensuring they align with backend-driven logic (for example, implement the screens and navigation for a multi-step form, but not the decision on skipping a step unless told via API).  
   - Produce **tests** for new logic, when applicable, as part of the deliverable (see [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#testing-strategy) for testing strategy).
@@ -205,13 +208,13 @@ AI coding agents are used to assist with development. They **must adhere to thes
 - **What AI Agents Must NOT Do**:  
   - **Forget Documentation**: Do not implement features without updating the corresponding [FRONTEND-FEATURES.md](FRONTEND-FEATURES.md) or [BACKEND-FEATURES.md](BACKEND-FEATURES.md) file. Feature documentation is critical for maintainability and must be kept in sync with the code. A feature is not "done" until its documentation is updated.  
   - **Hand-Edit Generated Field Definitions As A First Resort**: Do not manually reformat or manually maintain generated Drupal field definition YAML when the source schema or scaffolding script should be updated instead.
-  - **Change the Architecture**: Do not propose moving logic to the frontend or introducing new layers that conflict with the established Drupal backend + React frontend division.  
+  - **Change the Architecture**: Do not propose moving logic to the frontend or introducing new layers that conflict with the established Drupal backend + JS frontend division.  
   - **Introduce New Patterns or Tech**: Don’t spontaneously add state management libraries, new frameworks, or radically different coding patterns that haven’t been used in the project. Follow the existing style and approaches unless the maintainers request a change.  
-  - **Add Dependencies**: As per the dependency policy, the AI should not decide to pull in a new library (for instance, for date handling, form management, etc.) on its own. Use the tools already available in the project or vanilla JS/React capabilities.  
+  - **Add Dependencies**: As per the dependency policy, the AI should not decide to pull in a new library (for instance, for date handling, form management, etc.) on its own. Use the tools already available in the project or vanilla JS capabilities.  
   - **Touch Authentication or Authorization flows**: Do not modify how login, logout, or permission checks work. These are sensitive and fully handled by Drupal. The AI should not suggest changes to session handling, token management, etc., except for using them as documented.  
   - **Violate Guardrails**: In general, the AI agent should never output code or suggestions that conflict with any rule in this document. If a user’s request to the AI appears to require breaking a rule (e.g., “let’s add Firebase authentication” or “use this fancy UI toolkit”), the AI must refuse or ask for clarification rather than proceed.
 
-*Example*: **Non-compliant**: The AI suggests using a new state management library like MobX because it might simplify some state logic – this is introducing a new pattern/dependency without approval. The **compliant** approach is to use React's context or the Redux store (the project's established choice), or to ask a maintainer if a significant state architecture change is warranted before proceeding.
+*Example*: **Non-compliant**: The AI suggests using a new state management library like Redux or MobX because it might simplify some state logic – this is introducing a new pattern/dependency without approval. The **compliant** approach is to use plain JS module-level state (the project's established choice), or to ask a maintainer if a significant state architecture change is warranted before proceeding.
 
 - **Follow Project Conventions**: The AI’s generated code should match the project’s code style, structure, and best practices (as described in this document and seen in the existing codebase). The AI is here to assist within the defined architecture, not to remodel it.  
 - **Defer to Human Oversight**: Where there is uncertainty or a complex decision (especially around the rules here), the AI should flag the issue for a human to review rather than make an assumption. For example, if an AI is asked to implement something not clearly allowed, it should respond that it needs guidance due to these guardrails.
@@ -259,7 +262,7 @@ The application must be accessible to users with disabilities and meet **WCAG 2.
 - **Use ARIA judiciously**: ARIA roles and attributes are supplements, not substitutes, for semantic HTML. Use ARIA when native HTML can’t achieve the needed accessibility. For example, use `role="dialog"` with proper aria attributes for a modal, but don’t use `role="button"` on a `<div>` when a `<button>` would do. Overusing ARIA can sometimes make things worse if not done correctly.  
 - **Accessible by Default**: Write and generate code with accessibility in mind from the start. Don’t plan to “add accessibility later.” For AI agents, this means including alt text for images, labels for inputs, and so on without being explicitly prompted. It’s part of the definition of “done” for any UI element.  
 
-*Example*: **Compliant**: `<button onClick={save}>Save</button>` – This is a proper button, focusable and announcing itself as a button to assistive tech. **Non-compliant**: `<div onClick={save} tabindex="0">Save</div>` – Even if made focusable with tabindex, using a `<div>` requires adding ARIA role "button" and handling key presses manually to be equally accessible. It’s much safer to use the semantically correct `<button>` element.
+*Example*: **Compliant**: `<button id="save-btn">Save</button>` with a JS `click` listener – This is a proper button, focusable and announcing itself as a button to assistive tech. **Non-compliant**: `<div tabindex="0">Save</div>` – Even if made focusable with tabindex, using a `<div>` requires adding ARIA role "button" and handling key presses manually to be equally accessible. It's much safer to use the semantically correct `<button>` element.
 
 ## 18. **Final Summary (Non-Negotiable)**  
-**Drupal decides, React displays.** Always place authoritative logic and decisions on the Drupal backend, and let the React frontend handle presentation, input, and API calls. **AI assists, but does not make architectural decisions.** The AI (and developers) must work within these guardrails. In essence: when in doubt, remember that **Drupal is the brain**, and **React is the interface**. All design and coding choices should respect that separation. If any directive conflicts with this principle, escalate it. These rules are **firm** – sticking to them is critical for security, correctness, and maintainability.
+**Drupal decides, the JS frontend displays.** Always place authoritative logic and decisions on the Drupal backend, and let the JS frontend handle presentation, input, and API calls. **AI assists, but does not make architectural decisions.** The AI (and developers) must work within these guardrails. In essence: when in doubt, remember that **Drupal is the brain**, and **the JS frontend is the interface**. All design and coding choices should respect that separation. If any directive conflicts with this principle, escalate it. These rules are **firm** – sticking to them is critical for security, correctness, and maintainability.

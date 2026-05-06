@@ -4,7 +4,7 @@
 
 You are rebuilding **NewSchool Apply**, a web application for prospective students and families to apply to a school. The repository is a monorepo with two directories:
 
-- `/frontend/` — Plain React application (JavaScript, npm) — runs in Docker for both dev and production
+- `/frontend/` — Plain JavaScript application (Vite, npm) — runs in Docker for both dev and production
 - `/backend/` — Drupal 10 container (Dockerfile, initialization script, exported config)
 - `docker-compose.yml` — root-level compose file that wires frontend + backend together
 
@@ -25,8 +25,8 @@ These three documents together define the complete feature set and architectural
 These are the most critical rules; they are non-negotiable:
 
 - **Drupal is the single source of truth.** All authentication, authorization, business logic, workflow state, data validation, and permission decisions live in Drupal.
-- **React is UI only.** It renders screens, collects input, and calls Drupal's JSON:API or custom REST endpoints. It never duplicates backend logic or makes business decisions.
-- **No new npm packages without explicit maintainer approval.** Use built-in browser APIs, React, Redux (already included), and MSW/Jest/RTL for tests.
+- **The JS frontend is UI only.** It renders screens, collects input, and calls Drupal's JSON:API or custom REST endpoints. It never duplicates backend logic or makes business decisions.
+- **No new npm packages without explicit maintainer approval.** Use built-in browser APIs, the Fetch API, and Vitest/Playwright for tests.
 - **No token/session management in frontend.** Login is handled by Drupal. Use session cookies + CSRF tokens for state-changing requests.
 - **No unapproved dependencies.** Before adding any package, first check if the functionality can be achieved with existing tools or vanilla JavaScript.
 - **Security and privacy first.** Never expose secrets, PII, or sensitive data on the client. Never log personal data to console. Follow FERPA/COPPA and all privacy regulations.
@@ -56,21 +56,19 @@ For the complete set of rules and their justifications, refer to `AGENTS.md`.
     api.test.js                 — API integration tests
 /frontend/
   Dockerfile                    — Production image (multi-stage, nginx)
-  Dockerfile.dev                — Development image (node + CRA dev server)
+  Dockerfile.dev                — Development image (node + Vite dev server)
   nginx.conf                    — Production nginx configuration
-  package.json                  — React and test dependencies
+  package.json                  — Vite and test dependencies
   public/
     index.html                  — HTML entry point
   src/
-    index.js                    — React bootstrap
+    index.js                    — Application bootstrap
     index.css                   — Global styles
-    setupTests.js               — Test configuration
-    App.js                      — Root component
+    App.js                      — Root module (router init, shell)
     api/                        — Drupal API utilities
-    components/                 — React components
-    pages/                       — Page-level components
-    store/                      — Redux slices and store
-    mocks/                      — MSW handlers and test server
+    components/                 — UI components
+    pages/                      — Page-level modules
+    store/                      — Application state (plain JS modules)
 docker-compose.yml              — Orchestrate frontend + backend
 AGENTS.md                       — Architectural guardrails (read first!)
 BACKEND-FEATURES.md             — Backend implementation spec
@@ -81,7 +79,7 @@ INIT-PROMPT-FULL.md             — This file
 ### Docker & Compose Configuration
 
 **Backend Dockerfile:**
-- Base image: `php:8.2-apache-bookworm`
+- Base image: `php:8.3.30-apache-bookworm`
 - Installs Drupal 10 via Composer, copies exported config, sets up Apache
 - Drush is installed for install-time operations (not on PATH; use full path `/var/www/html/vendor/bin/drush`)
 - Stripe CLI is installed for webhook testing
@@ -91,14 +89,14 @@ INIT-PROMPT-FULL.md             — This file
 
 **Frontend Dockerfile.dev (development):**
 - Base image: `node:20-alpine`
-- Sets `CHOKIDAR_USEPOLLING=true` and `WATCHPACK_POLLING=true` for Windows/macOS Docker file-watching
-- Runs `npm ci && npm start` (CRA dev server on port 3000)
+- Sets `VITE_USE_POLLING=true` (or Vite's `server.watch.usePolling`) for Windows/macOS Docker file-watching
+- Runs `npm ci && npm run dev -- --host` (Vite dev server on port 3000)
 - Source directory is mounted as a volume for live hot-reload
 
 **Frontend Dockerfile (production):**
 - Multi-stage build:
-  - Stage 1: `node:20-alpine` — builds the React app (`npm ci && npm run build`)
-  - Stage 2: `nginx:alpine` — serves static files from `build/` directory
+  - Stage 1: `node:20-alpine` — builds the app (`npm ci && npm run build`); Vite outputs to `dist/`
+  - Stage 2: `nginx:alpine` — serves static files from `dist/` directory
 - Includes `nginx.conf` for routing and client-side routing fallback (`index.html`)
 
 **Root docker-compose.yml:**
@@ -112,7 +110,7 @@ INIT-PROMPT-FULL.md             — This file
 - Frontend service:
   - Builds from `./frontend/Dockerfile.dev` (for development) or `./frontend/Dockerfile` (for production)
   - Ports: `3000:3000`
-  - Environment: `REACT_APP_DRUPAL_BASE_URL=http://localhost:8080`
+  - Environment: `DRUPAL_BASE_URL=http://localhost:8080`
   - Volume mount: `./frontend/src:/app/src` (for hot-reload in dev)
 - Named volume: `backend_drupal_files` for persistent Drupal uploaded files
 - Named volume: `backend_drupal_db` for the SQLite database stored at `/var/drupal-db/db.sqlite` (outside the webroot)
@@ -129,7 +127,7 @@ INIT-PROMPT-FULL.md             — This file
 - `DRUPAL_SITE_NAME` — Optional; defaults to "NewSchool Apply"
 
 **Frontend:**
-- `REACT_APP_DRUPAL_BASE_URL` — Base URL for Drupal API (e.g., `http://localhost:8080`)
+- `DRUPAL_BASE_URL` — Base URL for Drupal API (e.g., `http://localhost:8080`)
   - Read from `.env` locally; injected via `docker-compose.yml` in containers
   - Create `.env.example` with placeholder value; `.env` is gitignored
 
@@ -143,13 +141,13 @@ INIT-PROMPT-FULL.md             — This file
 # From root directory
 docker compose up
 
-# In another terminal, watch frontend tests (optional)
+# In another terminal, run frontend tests (optional)
 cd frontend
-npm test -- --watchAll=false
+npx vitest run
 ```
 
 Backend starts on `http://localhost:8080` (Drupal admin at `/admin`).
-Frontend starts on `http://localhost:3000` (React SPA).
+Frontend starts on `http://localhost:3000` (Vite SPA).
 
 ### Making Changes
 
@@ -163,10 +161,10 @@ Frontend starts on `http://localhost:3000` (React SPA).
 4. Rebuild and restart: `docker compose up --build backend`
 5. Or run `docker exec <backend_container> /var/www/html/vendor/bin/drush` for Drush commands
 
-**Frontend (React):**
+**Frontend (JavaScript/Vite):**
 1. Edit files in `/frontend/src/`
-2. Changes auto-reload via CRA dev server and Docker volume mounts
-3. Run tests: `cd frontend && npm test -- --watchAll=false`
+2. Changes auto-reload via Vite dev server and Docker volume mounts
+3. Run tests: `cd frontend && npx vitest run`
 
 ### Database Reset
 
@@ -183,29 +181,27 @@ docker compose up         # Recreates fresh Drupal instance
 
 ---
 
-## State Management (Redux)
+## State Management
 
-The frontend uses **Redux Toolkit** for state management. Structure:
+The frontend uses **plain JavaScript module state** — no external state management library. Structure:
 
 ```
 frontend/src/store/
-  index.js                      — Redux store configuration
-  slices/
-    authSlice.js                — `{ user, logoutToken, status, error }`
-    applicationSlice.js         — `{ currentApplication, steps, status, error }`
+  auth.js                       — `{ user, logoutToken, status, error }`
+  application.js                — `{ currentApplication, steps, status, error }`
 ```
 
-**Auth Slice:**
+**Auth state:**
 - `user` — `null | { uid, name, email, roles }`
 - `logoutToken` — logout token returned by the login response; required for the logout request
 - `status` — `'idle' | 'loading' | 'error'`
 
-**Application Slice:**
+**Application state:**
 - `currentApplication` — Currently loaded/editing application (node object)
 - `steps` — Array of step data
 - `status` — `'idle' | 'loading' | 'error'`
 
-Use Redux actions and selectors throughout the app. Do not introduce alternative state management libraries without maintainer approval.
+Export getter and setter functions from each state module. Do not introduce external state management libraries without maintainer approval.
 
 ---
 
@@ -237,7 +233,7 @@ export function setBaseUrl(url)                  // Configure base URL
 ```
 
 **Key behaviors:**
-- All requests read `REACT_APP_DRUPAL_BASE_URL` from environment
+- All requests read `DRUPAL_BASE_URL` from `import.meta.env`
 - All requests include `credentials: 'include'` to send session cookies
 - `post`, `patch`, `delete_` automatically fetch and attach CSRF token as `X-CSRF-Token` header
 - Logout uses the `logoutToken` returned by login response (not CSRF token)
@@ -249,16 +245,16 @@ export function setBaseUrl(url)                  // Configure base URL
 
 ## Routing Structure
 
-Frontend routing uses `react-router-dom`. Key routes:
+Frontend routing uses the History API (no external router library). Key routes:
 
-| Path | Component | Protected | Purpose |
+| Path | Module | Protected | Purpose |
 |---|---|---|---|
 | `/` | `HomePage` | No | Landing page with login CTA |
 | `/login` | `LoginPage` | No | Email/password + Google/Microsoft links |
 | `/register` | `RegisterPage` | No | Account creation form |
 | `/dashboard` | `DashboardPage` | Yes | Application list and management |
 | `/apply` | `ApplicationLayout` | Yes | Multi-step form entry point |
-| `/apply/:step` | `StepComponent` | Yes | Individual step within multi-step form |
+| `/apply/:step` | `StepModule` | Yes | Individual step within multi-step form |
 | `/profile` | `ProfilePage` | Yes | User profile and settings |
 | `*` | `NotFoundPage` | No | 404 fallback |
 
@@ -281,7 +277,7 @@ Frontend routing uses `react-router-dom`. Key routes:
 3. Email/password submission:
    - POST `/user/login?_format=json` with `{ name, pass }`
    - Drupal returns: `{ current_user: { uid, name, email, roles }, logout_token, csrf_token }`
-   - Store `current_user` and `logout_token` in Redux auth slice
+   - Store `current_user` and `logoutToken` in the auth state module
    - Do **not** store `csrf_token` from the login response; fetch a fresh CSRF token from `/session/token` before each state-changing request
 4. Social login:
    - Browser redirects to Drupal OAuth endpoint
@@ -295,11 +291,11 @@ Frontend routing uses `react-router-dom`. Key routes:
 **On app initialization:**
 1. Call `GET /user/login_status?_format=json`
 2. If returns `1` (authenticated):
-   - Check Redux auth slice
+   - Check auth state module
    - If has `user` data, skip re-login
    - If NO `user` data (e.g., user logged in via Drupal admin UI), **bootstrap lightweight user object**:
      - Fetch current user info (minimal data needed for UI)
-     - Store in Redux auth slice
+     - Store in auth state module
    - Continue to app
 3. If returns `0` (not authenticated):
    - Redirect to `/login`
@@ -310,10 +306,10 @@ Frontend routing uses `react-router-dom`. Key routes:
 
 ### Logout Flow
 
-1. Call `logout(logoutToken)` where `logoutToken` is from Redux auth slice
+1. Call `logout(logoutToken)` where `logoutToken` is from the auth state module
 2. Backend invalidates session
 3. If successful response received:
-   - Clear Redux auth slice
+   - Clear auth state module
    - Redirect to `/`
 4. If failed (network error, bad token):
    - DO NOT clear local state
@@ -323,7 +319,7 @@ Frontend routing uses `react-router-dom`. Key routes:
 
 ### CSRF Token Management
 
-- Do NOT store CSRF token long-term in Redux
+- Do NOT store CSRF token long-term in state
 - Before each POST/PATCH/DELETE, call `getCsrfToken()` to fetch a fresh token
 - Include as `X-CSRF-Token` header
 - This keeps the token in sync with the Drupal session
@@ -365,22 +361,12 @@ pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -Admin
 
 **For complete backend testing documentation**, see [BACKEND-TESTING.md](BACKEND-TESTING.md).
 
-### Frontend Tests (Jest + React Testing Library + MSW)
+### Frontend Tests (Vitest)
 
 **Test files:**
-- Colocated with each component/module as `*.test.js`
-- Use Jest as test runner
-- Use React Testing Library for component testing
-- Use MSW (Mock Service Worker) for API mocking
-
-**MSW Setup:**
-```
-frontend/src/mocks/
-  handlers.js         — Defined API route handlers
-  server.js           — MSW server for test environment
-```
-
-In `setupTests.js`, start MSW server before all tests and cleanup after.
+- Colocated with each module as `*.test.js`
+- Use Vitest as test runner
+- Use the native Fetch API and standard JS test utilities for API mocking
 
 **Test Coverage Requirements:**
 
@@ -392,18 +378,37 @@ In `setupTests.js`, start MSW server before all tests and cleanup after.
 | `components/ProtectedRoute.js` | Redirects unauthenticated users to login; renders children when authenticated; preserves `?next=` param |
 | `pages/DashboardPage.js` | Loads applications on mount; displays application list; shows draft/submitted status; draft has "Continue" action; non-draft has "View" action |
 | `pages/ApplicationLayout.js` | Renders step indicator; shows current step; allows navigation between steps; disables future steps until prerequisites complete |
-| Step components | Each step validates required fields; shows validation errors; advances to next step on valid submit |
-| Redux slices | Actions dispatch correctly; reducers update state as expected; selectors return correct data |
+| Step modules | Each step validates required fields; shows validation errors; advances to next step on valid submit |
+| Auth state module | State updates correctly on login/logout; getters return correct values |
+| Application state module | State updates on load/save; getters return correct values |
 
-**Do not use snapshot tests for logic testing.** Snapshots are for UI regression only. Use explicit assertions for behavior verification.
+**Do not use snapshot tests for logic testing.** Use explicit assertions for behavior verification.
 
 **Run tests:**
 ```bash
 cd frontend
-npm test -- --watchAll=false
+npx vitest run
 ```
 
 All tests must pass before merging.
+
+### End-to-End Tests (Playwright)
+
+A small number of high-value Playwright tests exercise critical user flows against the full running stack.
+
+**Structure:**
+```
+e2e/
+  auth.spec.js          — Login, logout, session flows
+  application.spec.js   — Multi-step application submission
+```
+
+**How to run:**
+```bash
+npx playwright test
+```
+
+Keep the E2E suite small and focused — cover critical paths only.
 
 ---
 
@@ -428,8 +433,8 @@ Before considering the app complete, verify:
 - [ ] Backend `init.sh` runs on startup and scaffolds database/config
 - [ ] Drupal field definitions are generated via `backend/scripts/scaffold-drupal-from-schema.js` from schema sources
 - [ ] Any field-definition formatting changes are implemented in schema/scaffolder and regenerated (not hand-reformatted in generated output)
-- [ ] Frontend Dockerfile.dev supports hot-reload on Windows (via `CHOKIDAR_USEPOLLING`)
-- [ ] Frontend Dockerfile production image serves static files via nginx
+- [ ] Frontend Dockerfile.dev supports hot-reload on Windows (via Vite polling config)
+- [ ] Frontend Dockerfile production image builds to `dist/` and serves static files via nginx
 - [ ] `docker-compose up` starts both services successfully
 - [ ] Frontend can reach backend at `http://localhost:8080`
 - [ ] Login/logout flow works (email/password and social OAuth)
@@ -438,10 +443,10 @@ Before considering the app complete, verify:
 - [ ] Draft applications can be resumed and deleted
 - [ ] Submitted applications cannot be edited
 - [ ] File uploads work and are persisted in Drupal
-- [ ] All tests pass
+- [ ] All Vitest and Playwright tests pass
 - [ ] Code follows accessibility guidelines (keyboard nav, labels, ARIA, etc.)
 - [ ] No console errors or warnings in production build
-- [ ] `REACT_APP_DRUPAL_BASE_URL` is injected via environment (not hardcoded)
+- [ ] `DRUPAL_BASE_URL` is injected via environment (not hardcoded)
 - [ ] Stripe payment flow works (if payment module enabled)
 
 ---
@@ -463,7 +468,7 @@ docker-compose -f docker-compose.yml up
 **Environment for production:**
 - Set real Drupal admin credentials
 - Set real Stripe keys
-- Set `REACT_APP_DRUPAL_BASE_URL` to production domain (e.g., `https://apply.school.edu`)
+- Set `DRUPAL_BASE_URL` to production domain (e.g., `https://apply.school.edu`)
 - Use a real database (not SQLite) if scaling beyond local testing
 - Configure CORS origins for production domain in Drupal's `services.yml`
 

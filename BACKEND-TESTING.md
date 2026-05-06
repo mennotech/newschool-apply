@@ -2,9 +2,44 @@
 
 **Part of:** [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#backend-tests-powershell-smoke-tests)
 
-This guide provides detailed instructions for building and maintaining a cross-platform backend testing framework using PowerShell scripts that run with `pwsh`. For high-level testing strategy and CI integration, see the [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md) documentation.
+This guide covers the two backend test layers:
 
-## Goal
+1. **PHPUnit** — Drupal unit and kernel tests written in PHP, living in `backend/tests/`. These test PHP logic in isolation (custom module business rules, field validation, service behavior) without requiring a running HTTP server.
+2. **PowerShell smoke tests** — Cross-platform HTTP-level tests that run against the Dockerized Drupal backend and validate API contracts, auth/session behavior, and CRUD operations. These are the subject of most of this document.
+
+For high-level testing strategy and CI integration, see the [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md) documentation.
+
+## PHPUnit (Drupal Backend Unit Tests)
+
+PHPUnit tests live under `backend/tests/` and follow Drupal's standard testing conventions.
+
+**Structure:**
+```
+backend/
+  tests/
+    src/
+      Unit/          — Pure PHP unit tests (no database)
+      Kernel/        — Drupal kernel tests (database, no browser)
+```
+
+**Running PHPUnit tests** (inside the backend container):
+```bash
+docker compose exec backend /var/www/html/vendor/bin/phpunit \
+  --configuration /var/www/html/phpunit.xml \
+  /var/www/html/web/modules/custom
+```
+
+**Guidelines:**
+- Test custom module logic, field formatters, service classes, and validators with PHPUnit.
+- Keep Unit tests free of Drupal bootstrap where possible (fast and isolated).
+- Use Kernel tests for tests that require entity/field API or configuration.
+- Do not test API surface contracts with PHPUnit; use the smoke tests for that.
+
+---
+
+## PowerShell Smoke Tests
+
+### Goal
 
 Build a fast, deterministic backend smoke-test layer that:
 
@@ -148,7 +183,7 @@ pwsh ./backend/scripts/smoke/run-all.ps1
 Use overrides when needed:
 
 ```bash
-pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl "http://localhost:8080" -AdminUser "admin" -AdminPass "password123"
+pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl "http://localhost:8080" -AdminUser $env:DRUPAL_ADMIN_USER -AdminPass $env:DRUPAL_ADMIN_PASS
 ```
 
 On Windows, run the same `pwsh` command from WSL or PowerShell 7.
@@ -209,7 +244,7 @@ A backend testing framework is considered **complete and ready for Copilot cloud
   - `02-drupal-bundle-crud.ps1` — CRUD operations across all defined bundles
   - `03-payments-and-logout.ps1` — Payment contracts and logout flow
 - ✓ CI workflow (`.github/workflows/copilot-setup-steps.yml`) executes the **same** runner used by local developers
-- ✓ All tests pass without errors when run: `pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser 'admin' -AdminPass 'password123'`
+- ✓ All tests pass without errors when run: `pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser $env:DRUPAL_ADMIN_USER -AdminPass $env:DRUPAL_ADMIN_PASS`
 - ✓ Framework is documented in [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#testing-strategy) under the Testing Strategy section
 
 ## 12. Add Copilot Cloud Setup Workflow
@@ -226,7 +261,7 @@ To give Copilot cloud agent a Docker test environment, add a workflow file at `.
 
 1. Create `.github/workflows/copilot-setup-steps.yml`.
 2. Add triggers for `workflow_dispatch`, `pull_request`, and `push` to `main`.
-3. Build and start Docker backend with test credentials.
+3. Build and start Docker backend with explicit test credentials from workflow env.
 4. Wait until backend is healthy.
 5. Run the PowerShell smoke runner.
 6. Print backend logs on failure.
@@ -261,7 +296,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DRUPAL_ADMIN_USER: admin
-      DRUPAL_ADMIN_PASS: password123
+      DRUPAL_ADMIN_PASS: ${{ secrets.DRUPAL_ADMIN_PASS }}
       STRIPE_WEBHOOK_SECRET: whsec_ci_test_secret
 
     steps:

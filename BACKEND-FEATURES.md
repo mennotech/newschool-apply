@@ -2,15 +2,15 @@
 
 ## Overview
 
-- Backend is a Drupal 10 application running in Docker with Apache and PHP 8.2.
+- Backend is a Drupal 10 application running in Docker with Apache and PHP 8.3.
 - Drupal is the system of record for authentication, authorization, workflow state, validation, and business rules.
-- Backend exposes JSON:API resources and custom endpoints consumed by the React frontend.
+- Backend exposes JSON:API resources and custom endpoints consumed by the JS frontend.
 - Local development defaults to SQLite for lightweight startup and testing.
 - The backend schema direction is multi-bundle: one reusable application field set, several concrete application bundles, and reusable support records for people and addresses.
 
 ## Runtime And Deployment Features
 
-- Backend image is built from `php:8.2-apache-bookworm`.
+- Backend image is built from pinned upstream `php:8.3.30-apache-bookworm`.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Apache strips `WWW-Authenticate` response headers so browser-native 401 auth prompts are suppressed and the JS frontend handles unauthorized UX.
 - Drush is installed and used for install-time/bootstrap operations.
@@ -30,6 +30,7 @@
     - On Fly.io, `sites/default/files` must be a symlink to `/data/files` (the `files` subfolder of the single `/data` volume). The init script creates this symlink if it does not already exist, then applies the correct ownership and permissions to the target directory.
     - On local Docker Compose, `sites/default/files` is a real directory backed by the named volume `backend_drupal_files` mounted directly at that path.
   - `settings.php` exists and is written during first-time setup.
+  - Runtime trusted host patterns are regenerated on every startup from `BACKEND_URL` after sanitizing any accidental scheme, path, or port. Legacy `DRUPAL_HOSTNAME` remains available as an override when needed. Local defaults for `localhost`, `127.0.0.1`, and Fly domains remain allowed.
   - After `settings.php` is written, its permissions are locked to `440` (read-only for owner and group, no access for others) so the web server cannot modify it. This is a Drupal security requirement.
   - SQLite database configuration is present in `settings.php`. The SQLite database file path is read from the `DRUPAL_SQLITE_PATH` environment variable. The path must be **outside `sites/default/files`** and outside the webroot:
     - Local Docker Compose default: `/var/drupal-db/db.sqlite` (named volume `backend_drupal_db`)
@@ -39,6 +40,8 @@
 - The Drupal codebase files (PHP, config, vendor) are owned by the container build user and are NOT writable by `www-data`. Codebase directories use permissions `750` and files use `640` per Drupal's security guidance. Only the `sites/default/files` directory requires web server write access.
 - Fresh installs are automatic when no valid Drupal SQLite schema is detected.
 - Installation uses configured admin credentials from environment variables.
+- Backend startup fails if `DRUPAL_ADMIN_PASS` is missing or empty; local Docker Compose expects it to be set in the repository `.env` file.
+- Backend dependency installs are lockfile-based: `backend/composer.lock` is required for image builds and Composer installs run against the committed lockfile.
 - Required modules are enabled during install, including:
   - `jsonapi`
   - `serialization`
@@ -62,7 +65,8 @@
 - Drupal configuration lives in `backend/config/sync` and is imported at startup.
 - Config synchronization includes content types, fields, form/view displays, and related settings.
 - Startup script supports partial config import from the sync directory.
-- Backend service CORS origins are injected from env via `services.yml.template`.
+- Backend service CORS origins default to `FRONTEND_URL` and are written into `services.yml` by `init.sh` at startup.
+- `CORS_ALLOWED_ORIGINS` is only honored in production runtime so multiple frontend origins can be allowed there when required. Local/dev always derives a single allowed origin from `FRONTEND_URL`.
 
 ## Schema And Scaffolding Features
 
@@ -147,8 +151,8 @@
 
 ### Person Bundle (`person`)
 
-- `person` is the new normalized contact record for parents, guardians, and reusable emergency contacts.
-- Identity fields include given name, middle name, surname, preferred name, relationship to student, and workplace.
+- `person` is the normalized contact record for parents, guardians, and reusable emergency contacts.
+- Identity fields include given name, middle name, surname, preferred name, and workplace.
 - Contact methods are stored as multi-value typed lists:
   - `email_addresses`
   - `phone_numbers`
@@ -352,3 +356,38 @@
 - Frontend is expected to consume backend responses and render state only.
 - Stripe keys and verification remain backend-only concerns.
 - Payment finalization is webhook-authoritative, not frontend redirect-authoritative.
+
+## Known Behavior and Gotchas
+
+These were discovered during active development. They are not documented in Drupal core docs.
+
+### Required field cache after config changes
+
+Drupal's entity field manager caches field definitions in the discovery cache. After changing `required: true` to `required: false` on a field (whether via config import or a PHP script), the old value is served until a full cache rebuild runs. A valid POST that omits a previously required field will fail with 422 until `drush cr` is run:
+
+```bash
+/var/www/html/vendor/bin/drush cr
+```
+
+Always flush caches after field config changes, not just after config import.
+
+### Logout token is not the CSRF token
+
+`GET /user/logout?_format=json` requires a `token` query parameter that is the **`logout_token`** returned in the `/user/login` response body — not the CSRF token from `/session/token`. Drupal returns a misleading 403 with "csrf_token URL query argument is missing" when the wrong token is provided. This is a Drupal core error message that does not accurately describe the problem.
+
+### Session check — use login_status not JSON:API user
+
+`GET /user/login_status?_format=json` is the correct endpoint for checking session state. It returns `1` or `0` and is safe for all authenticated roles. `/jsonapi/user/user/{id}` returns 403 for valid sessions belonging to non-admin users because of permission checks on the user entity — using it for session validation produces false session-expiry errors.
+
+### Drush is not on PATH by default
+
+Drush is installed at `/var/www/html/vendor/bin/drush` inside the container. It is not on the system PATH. Use the full path when running Drush commands:
+
+```bash
+docker compose exec backend /var/www/html/vendor/bin/drush <command>
+```
+
+### Guardian relationship fields on application bundles
+
+The two application-level fields for guardian relationship type (`field_primary_guardian_re_630bb2` and `field_secondary_guardian__d20f5d`) are typed `text_long` in the Drupal field storage but function as relationship-type selects in the frontend. Their values are option strings such as `mother`, `father`, `guardian`. This is a modeling simplification — they were originally designed as notes fields before the relationship type was moved from the person record to the application.
+

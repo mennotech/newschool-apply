@@ -28,7 +28,9 @@ services:
     environment:
       - DRUPAL_ADMIN_USER
       - DRUPAL_ADMIN_PASS
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8080}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
 
   frontend:
     build:
@@ -40,7 +42,8 @@ services:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     environment:
-      - REACT_APP_DRUPAL_BASE_URL=${DRUPAL_BASE_URL:-http://localhost:8080}
+      - VITE_BACKEND_URL=${BACKEND_URL:-http://localhost:8080}
+      - VITE_DRUPAL_BASE_URL=${BACKEND_URL:-http://localhost:8080}
     depends_on:
       - backend
 
@@ -71,7 +74,7 @@ Use `docker compose down -v` only when you intentionally want a fresh Drupal sta
 Working rule:
 
 - Drupal decides.
-- React displays.
+- The JS frontend displays.
 - If logic affects permissions, workflow, validation, or business outcomes, put it in Drupal.
 
 ## 4. How should frontend work be done?
@@ -85,13 +88,15 @@ Typical frontend validation commands:
 
 ```bash
 cd frontend
-npm test -- --watchAll=false
+npx vitest run
 ```
 
 Best practices:
 
 - Use local npm for rapid test cycles.
-- Keep API base URLs in environment variables.
+- Set `BACKEND_URL` and `FRONTEND_URL` once and derive runtime config from them.
+- Local/dev CORS always follows `FRONTEND_URL`.
+- Use `CORS_ALLOWED_ORIGINS` only in production when you genuinely need more than one allowed frontend origin at the same time.
 - Do not add frontend business logic that duplicates Drupal behavior.
 - Do not add dependencies without explicit approval.
 
@@ -158,6 +163,59 @@ Documentation is part of the change, not follow-up work.
 5. Update docs before stopping.
 
 If a requested change conflicts with the architecture guardrails, stop and escalate instead of working around them.
+
+## 11. What are the known Drupal behavior gotchas?
+
+These were discovered during active development. They are not obvious from Drupal documentation and caused real bugs.
+
+### 422 on application creation after field config changes
+
+After changing `required` flags on Drupal fields (whether via config import or a script), Drupal's entity field manager caches the old field definitions in its discovery cache. Valid payloads that should pass validation will still fail with 422 until the cache is flushed. Always run `drush cr` (full cache rebuild) after changing field config, not just after config import.
+
+```bash
+docker compose exec backend /var/www/html/vendor/bin/drush cr
+```
+
+### Logout token vs CSRF token
+
+Drupal's `/user/logout?_format=json` endpoint requires a `token` query parameter. That token is the `logout_token` returned in the **login response body** — it is **not** the CSRF token from `/session/token`. When the wrong token is sent, Drupal returns a misleading 403 with the body "csrf_token URL query argument is missing". Do not treat this as a CSRF problem — it is a wrong-token problem. The fix is to supply the correct `logout_token`.
+
+### Nested `<form>` elements in HTML
+
+Browsers ignore inner `<form>` elements when they are nested inside an outer `<form>`. All submit buttons inside the inner form activate the **outer** form's submit handler regardless of which form they appear to belong to. When building reusable picker components (e.g. `PersonPicker`, `AddressPicker`) that have their own save actions and are rendered inside a page-level step form:
+
+- Replace the inner `<form>` with a `<div>`.
+- Change save buttons from `type="submit"` to `type="button"` with an explicit `onclick` handler.
+- Remove `event.preventDefault()` from the handler since there is no form event to prevent.
+
+### Mutable state copies
+
+When reading an array from plain JS module state and mutating it (e.g. `.sort()`), always copy the array first to avoid mutating shared state:
+
+```javascript
+// wrong — mutates shared state
+steps.sort((a, b) => a - b)
+
+// correct
+[...steps].sort((a, b) => a - b)
+```
+
+### JSON:API relationship fields in initial POST
+
+Relationship fields (e.g. `field_physical_address`) must be included in the initial POST body when creating an application node. Sending a POST to create the node and then a separate PATCH to add relationships works but triggers two round trips and can cause Drupal's validation to behave differently for the second request. Include `_rel_*` relationship keys in the original create payload so they are sent together.
+
+### Session check endpoint
+
+Use `GET /user/login_status?_format=json` (returns `1` or `0`) to check whether the current Drupal session is still active. Do **not** use `/jsonapi/user/user/{id}` for session checks — that endpoint is permission-sensitive and returns 403 for valid sessions belonging to non-privileged users, producing false session-expiry behavior.
+
+### Running Vitest from the right directory
+
+Always run `npx vitest run` from the `frontend/` directory, not from the repo root.
+
+```bash
+# correct
+cd frontend && npx vitest run
+```
 
 ## 10. How should releases be handled?
 

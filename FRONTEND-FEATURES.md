@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Frontend is a React single-page application for admissions and account management.
+- Frontend is a plain JavaScript single-page application (Vite) for admissions and account management.
 - Routing is handled client-side with protected and public routes.
 - Authenticated users can log in, register, start a new application, resume draft applications, review submitted applications, and view their profile.
 - Frontend integrates with Drupal via JSON:API and Drupal session-based authentication.
@@ -43,7 +43,8 @@
 ## Styling and Layout
 
 - **CSS Approach:** Vanilla CSS (no UI framework required). Global styles in `frontend/src/index.css`.
-- **Layout:** Clean, minimal design with responsive mobile-first approach.
+- **Layout:** Clean, minimal design with responsive mobile-first approach. Horizontal padding uses `clamp(1rem, 5vw, 3rem)` so content breathes on large screens without excessive whitespace on mobile.
+- **Shell/Content containers:** `.app-shell` and `.app-content` wrapper classes constrain maximum width and center content on wide viewports.
 - **Color Scheme:** Neutral, professional palette suitable for an educational institution. Primary action button color is used consistently across forms and CTAs.
 - **Spacing & Typography:** Consistent spacing scale and readable typography; headings use semantic HTML hierarchy (`<h1>` through `<h6>`).
 - **Form Styling:** Consistent form input styling with clear labels, focus states, and error states (via `aria-invalid` and error message display).
@@ -148,15 +149,17 @@
 
 ## Person Record UX
 
-- Guardian entry should use reusable Person cards rather than hardcoded father/mother form blocks.
-- Application flows should support selecting an existing person or creating a new person inline.
-- Person editing should prioritize speed and clarity with:
+- Guardian entry uses reusable Person cards rather than hardcoded father/mother form blocks.
+- Application flows support selecting an existing person or creating a new person inline.
+- Person editing prioritizes speed and clarity with:
   - card-based guardian summaries
-  - inline add/edit panels or modals
+  - inline add panels
   - typed email chips
   - typed phone chips
-  - address pickers backed by reusable address records
-- UI copy should refer to roles such as primary guardian, secondary guardian, emergency contact, or other relationship labels instead of assuming mother/father only.
+- The `PersonPicker` component does **not** collect a relationship type. Relationship type is collected on the step that uses the picker, because one person can have different roles across different applications.
+- UI copy refers to roles such as primary guardian, secondary guardian, emergency contact, or other relationship labels instead of assuming mother/father only.
+- The inner "new person" panel inside `PersonPicker` is a `<div>`, not a `<form>`, to avoid activating the outer step form's submit handler. The save button is `type="button"` with an explicit `onClick` handler.
+- The same pattern applies to `AddressPicker`: inner save section is a `<div>`, save button is `type="button"`.
 
 ## Contact Entry Rules
 
@@ -226,6 +229,7 @@
 - Shows a summary validation note below the Next button when validation errors exist.
 - Creates the related Drupal student profile when starting a brand new application.
 - Skips profile creation when editing/resuming an existing draft.
+- On new application creation, relationship fields (e.g. `field_physical_address`) are included in the initial POST body so the address is linked immediately without a follow-up PATCH.
 
 ## Step 2: Health Information
 
@@ -392,7 +396,7 @@
   - Success state showing payment and submission completion.
   - Link back to dashboard after successful payment.
 - Handles polling timeout gracefully with user-friendly messaging.
-- Redux state tracks payment confirmation with receipt URL via `paymentByApplication` store.
+- Frontend state tracks payment confirmation with receipt URL via the `paymentByApplication` state module.
 
 ### Payment And Application Linking
 
@@ -416,20 +420,20 @@
 
 ## State Management Direction
 
-- Redux Toolkit is used for auth state and application state.
+- Plain JavaScript module state is used for auth state and application state (no external state management library).
 - Frontend state tracks:
   - The selected application type
   - Reusable person records available to the user
   - Reusable address records available to the user
   - The current application draft and its referenced records
 - Application state preserves references to reusable records instead of flattening guardian data into the application draft.
-- Auth slice handles:
+- Auth state module handles:
   - Login
   - Registration
   - Session restore
   - Session verification
   - Logout
-- Application slice handles:
+- Application state module handles:
   - Fetching application lists
   - Creating applications (with type selection)
   - Fetching a draft by ID
@@ -439,7 +443,7 @@
   - Document upload/create actions
   - Payment tracking and receipt URLs (via `paymentByApplication` state)
 - Current application is tracked in state to support draft continuation.
-- Payment confirmation data is cached in Redux to track receipt URLs by application ID.
+- Payment confirmation data is cached in the state module to track receipt URLs by application ID.
 
 ## Accessibility And UX Requirements
 
@@ -456,7 +460,7 @@
 
 ## Testing Coverage Direction
 
-- Jest and React Testing Library coverage exists for core frontend behavior.
+- Vitest unit and integration test coverage exists for core frontend behavior.
 - Tests should cover:
   - Choosing an application type.
   - Viewing reusable people and addresses from the record library.
@@ -475,7 +479,7 @@
   - Review step before final submission.
   - Commitment step submission safeguards and signature validation.
   - Auth state management (login, registration, session restore, logout).
-- MSW (Mock Service Worker) is used to mock backend API behavior during frontend tests.
+- Fetch is mocked using standard test utilities (e.g., `vi.stubGlobal` or a fetch mock) during Vitest tests.
 - Mock API endpoints include session management, user data, application entities, document uploads, person records, and address records.
 
 ## Current Frontend Boundaries
@@ -488,7 +492,8 @@
 ## Environment Configuration
 
 - Application configuration uses environment variables for all environment-specific values.
-- **REACT_APP_DRUPAL_BASE_URL** – Base URL for Drupal backend API endpoints. Must be set during build/deployment; is never hardcoded.
+- **BACKEND_URL** – Canonical backend URL at the Compose or deployment layer. Frontend-facing Vite env values are derived from this URL rather than maintained separately.
+- **VITE_BACKEND_URL** / **VITE_DRUPAL_BASE_URL** – Frontend-exposed backend base URL values derived from `BACKEND_URL` for browser code. Vite only exposes variables with a `VITE_` prefix to `import.meta.env`, so browser code cannot read root-level `BACKEND_URL` directly.
 - Session management relies entirely on HttpOnly cookies set by Drupal (not accessible from JavaScript).
 - CSRF tokens are fetched fresh from the backend before each state-changing request.
 - File upload validation:
