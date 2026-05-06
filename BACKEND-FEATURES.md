@@ -71,20 +71,39 @@ This document describes the target backend behavior to implement during the buil
 
 ## Schema And Scaffolding Features
 
-- Primary schema source: `backend/schema/v2/` (split v2 catalog files).
-- Compatibility schema source: `backend/schema/application-form.schema-v2.yaml`.
+- Primary schema source: `schema/v2/` (split v2 catalog files).
 - The schema separates bundles into:
   - `reusable_bundles`
-  - `application_bundles`
-- `backend/scripts/scaffold-drupal-from-schema.js` now supports:
+- `Export-DrXDrupalScaffoldConfig` in the `DrX-Schema` PowerShell module now supports:
   - catalog schemas with multiple bundles
   - split-schema directory input (merges all `.yaml` / `.yml` files deterministically)
   - inherited shared fields from a reusable base bundle
   - reusable supporting record bundles
   - multi-value typed contact-list fields
   - dedicated reference field mappings for person, address, and student relationships
-- Drupal field definition YAML should be generated from schema using the scaffolder command:
-  - `node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2`
+  - generic node-reference fields with bundle targeting for master application and page/template relationships
+  - boolean fields for simple on/off bundle settings
+- Drupal field definition YAML should be generated from schema using the PowerShell module scaffolder entry point:
+  - `pwsh -File Enable-DrX-Schema.ps1`
+  - `Export-DrXDrupalScaffoldConfig`
+- A shared PowerShell module now centralizes backend test and schema helpers at:
+  - `schema/DrX-Schema/DrX-Schema.psd1`
+- The easiest way to load that module into an interactive terminal from the repo root is:
+  - `pwsh -File Enable-DrX-Schema.ps1`
+- After running the loader once in a terminal session, the module can be used by name directly from the repo root. The commands load `.env` from the current directory first, then fall back to the repo root `.env`. Schema commands use `DRX_SCHEMA_PATH` when it is set in the process environment or `.env`, otherwise they default to `schema/v2`.
+- Example direct commands:
+  - `Invoke-DrXApiSmokeTest`
+  - `Invoke-DrXDbSchemaValidation`
+  - `Invoke-DrXInternalApiSchemaValidation`
+  - `Invoke-DrXExternalApiSchemaValidation`
+  - `Export-DrXDrupalScaffoldConfig`
+- Command roles:
+  - `Invoke-DrXApiSmokeTest` verifies authenticated backend session basics and JSON:API index availability.
+  - `Invoke-DrXDbSchemaValidation` verifies Drupal bundle persistence through the internal entity API by creating, reloading, updating, and deleting one temporary node per schema bundle through Drush.
+  - `Invoke-DrXInternalApiSchemaValidation` is a hybrid test: it creates temporary fixture nodes through Drush, then checks JSON:API index exposure plus authenticated `GET`, `PATCH`, and `DELETE` behavior for each bundle over HTTP.
+  - `Invoke-DrXExternalApiSchemaValidation` is a pure external-client test: it creates, reads, updates, and deletes fixtures only through JSON:API over HTTP using schema-derived payloads.
+- Schema location can be overridden in `.env` with:
+  - `DRX_SCHEMA_PATH=schema/v2`
 - If generated field-definition formatting or structure needs changes, update schema inputs and/or scaffolder functionality first, then regenerate. Do not treat generated field definition YAML as primary hand-maintained source.
 
 ## Authentication And Session Features
@@ -118,14 +137,16 @@ This document describes the target backend behavior to implement during the buil
 
 - Reusable/shared bundle catalog include:
   - `application`
+  - `application_form`
+  - `student_information_page`
+  - `health_information_page`
+  - `parent_guardian_information_page`
+  - `additional_support_declaration_page`
+  - `parent_questionnaire_page`
+  - `statement_of_commitment_page`
   - `person`
   - `student`
   - `address`
-- Dedicated application bundles include:
-  - `application_partial_programming`
-  - `application_full_early_years`
-  - `application_full_middle_years`
-  - `application_full_senior_years`
 - Existing supporting bundles still expected by the broader platform include:
   - `student`
   - `document`
@@ -133,22 +154,38 @@ This document describes the target backend behavior to implement during the buil
 
 ### Reusable Application Bundle (`application`)
 
-- Holds only reusable application-level fields and relationships shared by all application types.
+- Represents the submission node created each time a user starts an application form.
 - Shared fields include:
-  - lifecycle status
-  - submission timestamp
-  - student profile reference
-  - primary and secondary guardian person references
-  - household relationship and custody fields
-  - shared section-review markers
-- These shared fields can be inherited into dedicated application bundles during scaffold generation.
+  - application form template reference
+  - date started
+  - application process state (`draft`, `submitted`)
+  - application result (`approved`, `denied`)
+  - payment state (`paid`, `unpaid`)
+- Detailed answers live on page-level application nodes rather than on the application submission itself.
+- Admins and users create application nodes from this bundle directly when a new application is started.
 
-### Dedicated Application Bundles
+### Application Form Bundle (`application_form`)
 
-- Each application type has its own bundle so its field model can diverge independently over time.
-- `application_partial_programming` currently carries the migrated partial-program field set.
-- `application_full_early_years`, `application_full_middle_years`, and `application_full_senior_years` are scaffolded placeholders for future form-specific fields.
-- Dedicated application bundles inherit the reusable application field set while owning their own application-type-specific attributes.
+- `application_form` is the admin-managed template that defines which reusable page bundles appear in a given application flow and in what order.
+- The Drupal node title is the form title.
+- Template fields include:
+  - `field_enabled`
+  - `field_description`
+  - `field_pages` as an ordered multi-value list of reusable page identifiers for the form type
+- Admins create `application_form` nodes first, then application records link back to the chosen template through `field_application_form`.
+
+### Application Page Bundles
+
+- Each reusable page bundle directly includes `field_master_application` as a bundle-level system field pointing to the owning `application` record.
+- `sections` now represent visual field groups on a page so the frontend can render titles, descriptions, borders, or other layout chrome around each group.
+- Reusable pages are split into individual schema definitions so admins can compose form types from them:
+  - `student_information_page`
+  - `health_information_page`
+  - `parent_guardian_information_page`
+  - `additional_support_declaration_page`
+  - `parent_questionnaire_page`
+  - `statement_of_commitment_page`
+- End-user answers are stored on these page nodes rather than directly on the master application node.
 
 ### Person Bundle (`person`)
 

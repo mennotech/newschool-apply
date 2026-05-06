@@ -1,370 +1,197 @@
 # Backend Testing Framework Guide
 
-This document describes the target backend testing framework to build and maintain during the implementation phases.
+This document describes the backend testing surface that currently exists in this repository.
 
-**Part of:** [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#backend-tests-powershell-smoke-tests)
+Part of: [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#backend-tests-powershell-smoke-tests)
 
-This guide covers the two backend test layers:
+The current backend test layers are:
 
-1. **PHPUnit** — Drupal unit and kernel tests written in PHP, living in `backend/tests/`. These test PHP logic in isolation (custom module business rules, field validation, service behavior) without requiring a running HTTP server.
-2. **PowerShell smoke tests** — Cross-platform HTTP-level tests that run against the Dockerized Drupal backend and validate API contracts, auth/session behavior, and CRUD operations. These are the subject of most of this document.
+1. PHPUnit for Drupal unit and kernel tests in `backend/tests/`.
+2. PowerShell module-driven validation through `DrX-Schema` for backend auth/session checks, schema CRUD validation, and JSON:API lifecycle validation.
 
-For high-level testing strategy and CI integration, see the [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md) documentation.
+For high-level testing strategy and CI integration, see [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md).
 
-## PHPUnit (Drupal Backend Unit Tests)
+## PHPUnit
 
-PHPUnit tests live under `backend/tests/` and follow Drupal's standard testing conventions.
+PHPUnit tests live under `backend/tests/` and follow Drupal testing conventions.
 
-**Structure:**
-```
+Structure:
+
+```text
 backend/
   tests/
     src/
-      Unit/          — Pure PHP unit tests (no database)
-      Kernel/        — Drupal kernel tests (database, no browser)
+      Unit/          - Pure PHP unit tests
+      Kernel/        - Drupal kernel tests
 ```
 
-**Running PHPUnit tests** (inside the backend container):
+Run PHPUnit inside the backend container:
+
 ```bash
 docker compose exec backend /var/www/html/vendor/bin/phpunit \
   --configuration /var/www/html/phpunit.xml \
   /var/www/html/web/modules/custom
 ```
 
-**Guidelines:**
-- Test custom module logic, field formatters, service classes, and validators with PHPUnit.
-- Keep Unit tests free of Drupal bootstrap where possible (fast and isolated).
-- Use Kernel tests for tests that require entity/field API or configuration.
-- Do not test API surface contracts with PHPUnit; use the smoke tests for that.
+Guidance:
 
----
+- Use Unit tests for isolated PHP logic.
+- Use Kernel tests for entity, field, and configuration behavior.
+- Do not use PHPUnit for frontend-facing JSON:API contract checks.
 
-## PowerShell Smoke Tests
+## PowerShell Module Validation
 
-### Goal
+The PowerShell backend validation surface is the `DrX-Schema` module at `schema/DrX-Schema/DrX-Schema.psd1`.
 
-Build a fast, deterministic backend smoke-test layer that:
-
-- runs against the Dockerized Drupal backend
-- validates critical endpoint contracts
-- works the same on Windows, macOS, and Linux
-- is simple enough for contributors and Copilot cloud agents to extend safely
-
-## Core Principles
-
-- Backend runtime is always Docker.
-- Test scripts are PowerShell-first (`.ps1`) and executed with `pwsh`.
-- Tests verify API contracts and auth/session behavior, not UI.
-- Keep tests small, independent, and order-safe.
-- Fail fast with clear messages and non-zero exit codes.
-
-## 1. Create The Test Folder Structure
-
-Start with this minimal structure:
-
-```text
-backend/
-  scripts/
-    smoke/
-      common.ps1
-      01-auth-session.ps1
-      02-drupal-bundle-crud.ps1
-      03-payments-and-logout.ps1
-      run-all.ps1
-```
-
-Naming convention:
-
-- Prefix test groups with numbers so ordering is explicit.
-- Keep one responsibility per script.
-
-## 2. Build A Shared PowerShell Test Library
-
-Create `backend/scripts/smoke/common.ps1` to centralize reusable behavior.
-
-Recommended functions:
-
-- `Write-Step` for readable progress output
-- `Assert-StatusCode` for HTTP response checks
-- `Assert-True` for simple boolean assertions
-- `Invoke-Api` wrapper around `Invoke-WebRequest` or `Invoke-RestMethod`
-- `Get-Json` to parse JSON safely
-- `Fail-Test` to print reason and exit non-zero
-
-Script baseline:
+Load it from the repo root:
 
 ```powershell
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+pwsh -File Enable-DrX-Schema.ps1
 ```
 
-Cross-platform note:
+After loading the module, the main validation commands are:
 
-- Use `pwsh` (PowerShell 7+), not Windows PowerShell 5.1-only features.
-- Avoid OS-specific shell calls in shared helpers.
+- `Invoke-DrXApiSmokeTest`
+- `Invoke-DrXDbSchemaValidation`
+- `Invoke-DrXInternalApiSchemaValidation`
+- `Invoke-DrXExternalApiSchemaValidation`
+- `Export-DrXDrupalScaffoldConfig`
 
-## 3. Add Your First Smoke Test Group
+Defaults:
 
-Create `01-auth-session.ps1` first. It should validate foundational auth/session contracts.
+- Commands load `.env` from the current directory first, then the repo root.
+- Schema commands use `DRX_SCHEMA_PATH` when it is set in the process environment or `.env`, otherwise they default to `schema/v2`.
 
-Suggested checks:
+## Validation Command Roles
 
-1. Anonymous `GET /user/login_status?_format=json` returns unauthenticated (`0`).
-2. `GET /session/token` returns a non-empty token string.
-3. Login endpoint succeeds with test credentials.
-4. Authenticated login status returns `1`.
-5. Protected session/user-info endpoint behavior matches expected authorization rules.
+### `Invoke-DrXApiSmokeTest`
 
-Implementation guidance:
+Purpose: verify authenticated backend session basics and JSON:API index availability.
 
-- Use a temporary cookie/session file if needed.
-- Keep request payloads minimal and explicit.
-- Assert both status code and key response fields.
+Use it to answer:
 
-## 4. Add A Second Contract Test Group
+- Can the test user log in successfully?
+- Does `/session/token` work?
+- Is the JSON:API index reachable for the authenticated session?
 
-Create `02-drupal-bundle-crud.ps1` to validate CRUD behavior across all defined Drupal bundles.
+### `Invoke-DrXDbSchemaValidation`
 
-Suggested checks:
+Purpose: validate the Drupal entity layer directly.
 
-1. Discover or enumerate all required bundle machine names used by the backend.
-2. Create one minimal valid entity per bundle.
-3. Read each created entity and assert expected fields and relationships are present.
-4. Update at least one mutable field per bundle and verify persistence.
-5. Delete the created entity and verify it is no longer retrievable.
+How it works:
 
-Implementation guidance:
+- Uses Drush inside the backend container.
+- Creates, reloads, updates, and deletes one temporary node per schema bundle.
 
-- Keep a per-bundle fixture payload map in the script so test data is explicit.
-- Use unique test values (for example, timestamp suffixes) to avoid collisions.
-- Track created entity IDs and always clean up, even when an assertion fails.
-- Fail with bundle-specific error messages so regressions are easy to diagnose.
+Use it to answer:
 
-## 5. Add A Third Contract Test Group
+- Does Drupal itself recognize each schema bundle?
+- Can Drupal persist those bundles correctly through the entity API?
 
-Create `03-payments-and-logout.ps1` to validate payment request contracts and session teardown.
+### `Invoke-DrXInternalApiSchemaValidation`
 
-Suggested checks:
+Purpose: validate the hybrid internal-create plus external-API path.
 
-1. Payment endpoint rejects malformed or incomplete requests with expected 4xx.
-2. Stripe webhook endpoint rejects invalid signatures.
-3. Logout endpoint invalidates session.
-4. Post-logout login status returns `0`.
+How it works:
 
-Keep these checks contract-focused. Do not embed long setup flows.
+- Creates temporary fixture nodes through Drush inside the backend container.
+- Then validates JSON:API index exposure and authenticated `GET`, `PATCH`, and `DELETE` over HTTP.
 
-## 6. Add A Single Entry Runner
+Use it to answer:
 
-Create `run-all.ps1` that executes test groups in order and exits immediately on failure.
+- Can the API read and mutate real bundle instances once Drupal has already created them internally?
 
-Runner responsibilities:
+### `Invoke-DrXExternalApiSchemaValidation`
 
-- Accept configurable parameters:
-  - `BaseUrl` (default `http://localhost:8080`)
-  - `AdminUser`
-  - `AdminPass`
-- Dot-source `common.ps1`
-- Execute `01-*`, then `02-*`, then `03-*`
-- Return non-zero if any group fails
+Purpose: validate the pure external-client JSON:API lifecycle.
 
-Cross-platform invocation:
+How it works:
 
-```bash
-pwsh ./backend/scripts/smoke/run-all.ps1
-```
+- Creates fixtures only through JSON:API over HTTP.
+- Builds payloads from the normalized schema and creates referenced fixtures the same way.
+- Then validates authenticated `GET`, `PATCH`, and `DELETE` over HTTP.
 
-## 7. Wire It To Docker-Based Local Testing
+Use it to answer:
 
-From repository root:
+- Can a real external client perform the full bundle lifecycle through the published API alone?
 
-```bash
+This command is also useful as a schema/config drift detector. If Drupal requires fields that were added manually in the UI and are not represented in `schema/v2`, this command should fail.
+
+## Interpreting Failures
+
+- If `Invoke-DrXDbSchemaValidation` passes but `Invoke-DrXInternalApiSchemaValidation` fails, Drupal bundle persistence is working internally but JSON:API exposure, permissions, routing, or request handling is broken.
+- If `Invoke-DrXInternalApiSchemaValidation` passes but `Invoke-DrXExternalApiSchemaValidation` fails, the API can operate on server-created fixtures but does not yet support a pure external-client create lifecycle for one or more bundles.
+- If `Invoke-DrXExternalApiSchemaValidation` reports missing required fields that are not represented in `schema/v2`, the live Drupal config has drifted from the schema source of truth.
+- If all three schema validations fail, the underlying schema, generated config, or Drupal bundle setup is usually broken.
+
+## Recommended Local Workflow
+
+From the repository root:
+
+```powershell
 docker compose up -d backend
-pwsh ./backend/scripts/smoke/run-all.ps1
+pwsh -File Enable-DrX-Schema.ps1
+Invoke-DrXApiSmokeTest
+Invoke-DrXDbSchemaValidation
+Invoke-DrXInternalApiSchemaValidation
+Invoke-DrXExternalApiSchemaValidation
 ```
 
-Use overrides when needed:
+Regenerate Drupal scaffold config from schema when needed:
 
-```bash
-pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl "http://localhost:8080" -AdminUser $env:DRUPAL_ADMIN_USER -AdminPass $env:DRUPAL_ADMIN_PASS
+```powershell
+pwsh -File Enable-DrX-Schema.ps1
+Export-DrXDrupalScaffoldConfig
 ```
 
-On Windows, run the same `pwsh` command from WSL or PowerShell 7.
+## CI Guidance
 
-## 8. Add CI Execution
+In CI, keep the backend validation sequence aligned with local usage:
 
-In CI, keep the same sequence used locally:
-
-1. Build backend image.
-2. Start backend container with test credentials.
-3. Wait for backend health.
-4. Run `pwsh ./backend/scripts/smoke/run-all.ps1`.
-5. On failure, print backend logs.
-6. Always tear down containers.
-
-This keeps local and CI behavior aligned.
-
-## 9. Keep Tests Deterministic
-
-Do:
-
-- test fixed API contracts
-- use explicit assertions
-- clean up session state during each run
-
-Avoid:
-
-- timing-dependent sleeps as test logic
-- dependency on manually seeded UI state
-- broad "catch-all" tests that hide root causes
-
-## 10. How To Add New Test Groups
-
-When adding a new check area:
-
-1. Add the next numeric script (for example `04-<topic>.ps1`) under `backend/scripts/smoke`.
-2. Reuse helpers from `common.ps1`.
-3. Keep checks narrowly scoped.
-4. Add the new script to `run-all.ps1`.
-5. Document the new group in this file.
-
-Examples:
-
-- `04-jsonapi-contracts.ps1`
-- `05-access-control.ps1`
-- `06-file-upload-contracts.ps1`
-
-## 11. Minimum Done Criteria
-
-A backend testing framework is considered **complete and ready for Copilot cloud agents** when:
-
-- ✓ Tests execute cross-platform using `pwsh` (Windows, macOS, Linux)
-- ✓ All tests run **only** against the Dockerized Drupal backend (no host-specific setup)
-- ✓ Shared helper module `backend/scripts/smoke/common.ps1` exists with reusable functions
-- ✓ Single ordered runner `backend/scripts/smoke/run-all.ps1` exists and accepts `BaseUrl`, `AdminUser`, `AdminPass` parameters
-- ✓ At least three smoke test groups exist with clear responsibilities:
-  - `01-auth-session.ps1` — Authentication, session, and login_status verification
-  - `02-drupal-bundle-crud.ps1` — CRUD operations across all defined bundles
-  - `03-payments-and-logout.ps1` — Payment contracts and logout flow
-- ✓ CI workflow (`.github/workflows/copilot-setup-steps.yml`) executes the **same** runner used by local developers
-- ✓ All tests pass without errors when run: `pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser $env:DRUPAL_ADMIN_USER -AdminPass $env:DRUPAL_ADMIN_PASS`
-- ✓ Framework is documented in [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#testing-strategy) under the Testing Strategy section
-
-## 12. Add Copilot Cloud Setup Workflow
-
-To give Copilot cloud agent a Docker test environment, add a workflow file at `.github/workflows/copilot-setup-steps.yml`.
-
-### Why this workflow exists
-
-- It tells Copilot how to build and start the backend in CI.
-- It guarantees tests run in a containerized environment, not a host-specific setup.
-- It reuses the same smoke test runner used by developers: `pwsh ./backend/scripts/smoke/run-all.ps1`.
-
-### Build steps
-
-1. Create `.github/workflows/copilot-setup-steps.yml`.
-2. Add triggers for `workflow_dispatch`, `pull_request`, and `push` to `main`.
-3. Build and start Docker backend with explicit test credentials from workflow env.
-4. Wait until backend is healthy.
-5. Run the PowerShell smoke runner.
+1. Regenerate Drupal scaffold config from schema with `Export-DrXDrupalScaffoldConfig`.
+2. Build the backend image.
+3. Start the backend container.
+4. Wait for backend health.
+5. Load `DrX-Schema` and run the validation commands needed for that pipeline.
 6. Print backend logs on failure.
 7. Always tear down containers and volumes.
 
-### Copy-ready workflow template
+Example workflow fragment:
 
 ```yaml
-name: Copilot Backend Setup Steps
+- name: Regenerate Drupal scaffold config
+  run: pwsh -NoProfile -Command ". .\\Enable-DrX-Schema.ps1; Export-DrXDrupalScaffoldConfig"
 
-on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - 'backend/**'
-      - 'application-form.schema.yaml'
-      - 'docker-compose.yml'
-      - '.github/workflows/copilot-setup-steps.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'application-form.schema.yaml'
-      - 'docker-compose.yml'
-      - '.github/workflows/copilot-setup-steps.yml'
+- name: Start backend container
+  run: docker compose up -d backend
 
-permissions:
-  contents: read
-
-jobs:
-  backend-smoke:
-    runs-on: ubuntu-latest
-    env:
-      DRUPAL_ADMIN_USER: admin
-      DRUPAL_ADMIN_PASS: ${{ secrets.DRUPAL_ADMIN_PASS }}
-      STRIPE_WEBHOOK_SECRET: whsec_ci_test_secret
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Regenerate Drupal scaffold config
-        run: node backend/scripts/scaffold-drupal-from-schema.js application-form.schema.yaml
-
-      - name: Build backend image
-        run: docker compose build backend
-
-      - name: Start backend container
-        run: docker compose up -d backend
-
-      - name: Wait for backend health
-        shell: pwsh
-        run: |
-          $maxAttempts = 60
-          for ($i = 1; $i -le $maxAttempts; $i++) {
-            $health = docker inspect --format '{{.State.Health.Status}}' newschool-apply-backend-1 2>$null
-            if ($health -eq 'healthy') {
-              Write-Host 'Backend is healthy.'
-              exit 0
-            }
-            Start-Sleep -Seconds 5
-          }
-          Write-Error 'Backend did not become healthy in time.'
-
-      - name: Run backend smoke tests
-        run: pwsh ./backend/scripts/smoke/run-all.ps1 -BaseUrl 'http://localhost:8080' -AdminUser $env:DRUPAL_ADMIN_USER -AdminPass $env:DRUPAL_ADMIN_PASS
-
-      - name: Show backend logs on failure
-        if: failure()
-        run: docker compose logs backend
-
-      - name: Stop containers
-        if: always()
-        run: docker compose down -v
+- name: Run backend validation
+  run: pwsh -NoProfile -Command ". .\\Enable-DrX-Schema.ps1; Invoke-DrXApiSmokeTest; Invoke-DrXDbSchemaValidation; Invoke-DrXInternalApiSchemaValidation"
 ```
 
-### Notes
+Include `Invoke-DrXExternalApiSchemaValidation` in CI when you want strict external-contract enforcement and the live schema/config is expected to be fully aligned.
 
-- Use `pwsh` in CI so script behavior matches local cross-platform behavior.
-- Keep the workflow command surface minimal and deterministic.
-- If your backend service/container name differs, update the health-check inspect target accordingly.
+## Minimum Done Criteria
 
----
+Backend validation is considered current and usable when:
 
-## 13. Integration with Copilot Cloud Agents
+- Tests run cross-platform using `pwsh`.
+- Backend validation runs only against the Dockerized Drupal backend.
+- `DrX-Schema` is the documented PowerShell validation surface.
+- Schema-derived Drupal config is generated through `Export-DrXDrupalScaffoldConfig`.
+- The validation roles of DB, internal API, and external API checks are documented clearly.
+- The documented commands match the commands contributors actually run from the repo root.
 
-This testing framework is designed to support Copilot cloud agents building the NewSchool Apply application. When Copilot agents work on backend features:
+## Copilot Agent Expectations
 
-1. **Agents must consult this document** before implementing new tests or modifying existing ones.
-2. **Agents must run the smoke test suite** after any backend changes: `pwsh ./backend/scripts/smoke/run-all.ps1`
-3. **All tests must pass** before the work is considered complete.
-4. **CI workflow** (via `.github/workflows/copilot-setup-steps.yml`) provides the containerized test environment.
+When working on backend features, agents should:
 
-For Copilot agent responsibilities and testing requirements, see section 13 in [AGENTS.md](AGENTS.md).
+1. Consult this document before changing backend tests or validation flow.
+2. Load `DrX-Schema` from the repo root with `pwsh -File Enable-DrX-Schema.ps1`.
+3. Run the relevant backend validation commands after backend changes.
+4. Treat `Invoke-DrXExternalApiSchemaValidation` failures as possible schema/config drift, not just test harness failures.
 
----
+For Copilot agent responsibilities and repository guardrails, see [AGENTS.md](AGENTS.md).
 
 ## 14. Documentation Structure
 

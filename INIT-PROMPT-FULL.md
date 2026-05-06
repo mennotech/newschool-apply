@@ -52,8 +52,6 @@ For the complete set of rules and their justifications, refer to `AGENTS.md`.
   modules/
     custom/
       newschool_payments/       — Custom payment module
-  scripts/
-    scaffold-drupal-from-schema.js  — Schema generation utility
   tests/
     api.test.js                 — API integration tests
 /frontend/
@@ -156,10 +154,11 @@ Frontend starts on `http://localhost:3000` (Vite SPA).
 **Backend (Drupal):**
 1. Modify Drupal config, modules, or custom code in `/backend/`
 2. For schema-driven content type or field definition changes, regenerate definitions from schema:
-   - `node backend/scripts/scaffold-drupal-from-schema.js backend/schema/v2`
-   - Use `backend/schema/application-form.schema-v2.yaml` only for compatibility scenarios.
-   - Do not hand-maintain generated field definition YAML when the schema/script can be updated.
-3. If generated field definition files need reformatting or structure changes, update schema files and/or add scaffolding functionality in `backend/scripts/scaffold-drupal-from-schema.js`, then regenerate.
+  - `pwsh -File Enable-DrX-Schema.ps1`
+  - `Export-DrXDrupalScaffoldConfig`
+  - Use `schema/v2/` as the only supported schema source.
+  - Do not hand-maintain generated field definition YAML when the schema/module can be updated.
+3. If generated field definition files need reformatting or structure changes, update schema files and/or add scaffolding functionality in `schema/DrX-Schema/DrX-Schema.psm1`, then regenerate with `Export-DrXDrupalScaffoldConfig`.
 4. Rebuild and restart: `docker compose up --build backend`
 5. Or run `docker exec <backend_container> /var/www/html/vendor/bin/drush` for Drush commands
 
@@ -433,7 +432,7 @@ Before considering the app complete, verify:
 
 - [ ] Backend Dockerfile builds and runs Drupal 10 successfully
 - [ ] Backend `init.sh` runs on startup and scaffolds database/config
-- [ ] Drupal field definitions are generated via `backend/scripts/scaffold-drupal-from-schema.js` from schema sources
+- [ ] Drupal field definitions are generated via `Export-DrXDrupalScaffoldConfig` from schema sources
 - [ ] Any field-definition formatting changes are implemented in schema/scaffolder and regenerated (not hand-reformatted in generated output)
 - [ ] Frontend Dockerfile.dev supports hot-reload on Windows (via Vite polling config)
 - [ ] Frontend Dockerfile production image builds to `dist/` and serves static files via nginx

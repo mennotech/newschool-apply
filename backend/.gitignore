@@ -1,3 +1,4 @@
 web/*
 vendor/*
-config/generated/*
+config/*
+!config/sync/*

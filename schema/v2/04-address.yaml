@@ -30,3 +30,10 @@ catalog:
               label: Postal / Zip Code
               type: text
               required: true
+              default: MB
+            - key: country
+              label: Country
+              type: text
+              required: true
+              default: Canada
+

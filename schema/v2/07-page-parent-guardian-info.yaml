@@ -1,0 +1,48 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_parent_guardian_info
+      label: Page - Parent Guardian Information
+      description: Reusable page definition for parent, guardian, and emergency contact relationships.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: parent_guardian_information
+          title: Parent / Guardian Information
+          description: Parent and guardian records are selected from reusable Person records.
+          fields:
+            - key: primary_guardian_person
+              label: Primary Guardian
+              type: person_reference
+              required: true
+            - key: primary_guardian_relationship_to_student
+              label: Relationship To Student
+              type: select
+              required: true
+              options: [mother, father, guardian, grandparent, emergency_contact, other]
+            - key: secondary_guardian_person
+              label: Secondary Guardian
+              type: person_reference
+              required: false
+            - key: secondary_guardian_relationship_to_student
+              label: Relationship To Student
+              type: select
+              required: false
+              options: [mother, father, guardian, grandparent, emergency_contact, other]
+            - key: primary_guardian_relationship_notes
+              label: Primary Guardian Notes
+              type: textarea
+              required: false
+            - key: secondary_guardian_relationship_notes
+              label: Secondary Guardian Notes
+              type: textarea
+              required: false
+            - key: emergency_contact_relationship_notes
+              label: Emergency Contact Notes
+              type: textarea
+              required: false
