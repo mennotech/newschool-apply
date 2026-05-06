@@ -1,4 +1,4 @@
-FROM php:8.2-apache-bookworm
+FROM php:8.3.30-apache-bookworm@sha256:daf3cad5642798e462a029e41d6347cba7f3362f7028f8e60c3623dbadc4e590
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -89,13 +89,12 @@ ENV COMPOSER_HOME=/tmp/composer \
 RUN install -d -o www-data -g www-data -m 0770 /tmp/composer /tmp/composer/cache
 
 # Copy composer files
-COPY --chown=www-data:www-data composer.json composer.lock* ./
+COPY --chown=www-data:www-data composer.json composer.lock ./
 
 # Install Drupal and dependencies
 USER www-data
 RUN umask 0027; \
-    composer install --no-dev --optimize-autoloader 2>&1 || \
-    composer install --no-dev 2>&1
+    composer install --no-dev --optimize-autoloader --no-interaction 2>&1
 USER root
 
 # Copy custom modules
@@ -103,9 +102,6 @@ COPY --chown=www-data:www-data modules/ web/modules/custom/
 
 # Copy configuration
 COPY --chown=www-data:www-data config/ config/
-
-# Copy services template
-COPY --chown=www-data:www-data services.yml.template /var/www/html/services.yml.template
 
 # Add Drush to PATH
 RUN ln -s /var/www/html/vendor/bin/drush /usr/local/bin/drush
