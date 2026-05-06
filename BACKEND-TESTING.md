@@ -1,5 +1,7 @@
 # Backend Testing Framework Guide
 
+This document describes the target backend testing framework to build and maintain during the implementation phases.
+
 **Part of:** [INIT-PROMPT-FULL.md](INIT-PROMPT-FULL.md#backend-tests-powershell-smoke-tests)
 
 This guide covers the two backend test layers:

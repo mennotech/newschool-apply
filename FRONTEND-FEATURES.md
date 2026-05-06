@@ -1,8 +1,10 @@
 # Frontend Features
 
+This document describes the target frontend behavior to implement during the build phases.
+
 ## Overview
 
-- Frontend is a plain JavaScript single-page application (Vite) for admissions and account management.
+- The target frontend is a plain JavaScript single-page application (Vite) for admissions and account management.
 - Routing is handled client-side with protected and public routes.
 - Authenticated users can log in, register, start a new application, resume draft applications, review submitted applications, and view their profile.
 - Frontend integrates with Drupal via JSON:API and Drupal session-based authentication.
@@ -69,8 +71,8 @@
   - Google
   - Microsoft
 - Uses Drupal session cookies instead of frontend token management.
-- Stores basic authenticated user data in `sessionStorage` for session restore. Only non-sensitive user identity data (uid, display name, roles) is stored — never tokens, passwords, or credentials.
-- On session restore, revalidates the session against Drupal's `/user/login_status` endpoint before trusting the cached user.
+- Does not store auth state, identity data, or session-derived user data in `localStorage`, `sessionStorage`, or other browser storage.
+- On app load, revalidates the active Drupal session against `/user/login_status` before trusting any local in-memory auth state.
 - If an authenticated backend session exists but no local auth state is present (e.g. user logged in via Drupal admin UI), the frontend **bootstraps a lightweight user object** from the backend session automatically.
 - If a stale Drupal session causes a login failure (403), frontend attempts a logout cleanup and retries once.
 - Logout sends a GET request to `/user/logout?_format=json&token={logoutToken}` with the logout token obtained at login time.
@@ -430,7 +432,7 @@
 - Auth state module handles:
   - Login
   - Registration
-  - Session restore
+  - Session bootstrap from an active backend session
   - Session verification
   - Logout
 - Application state module handles:
@@ -478,11 +480,11 @@
   - Application page flow, step transitions, auto-save, and draft hydration.
   - Review step before final submission.
   - Commitment step submission safeguards and signature validation.
-  - Auth state management (login, registration, session restore, logout).
+  - Auth state management (login, registration, session bootstrap, logout).
 - Fetch is mocked using standard test utilities (e.g., `vi.stubGlobal` or a fetch mock) during Vitest tests.
 - Mock API endpoints include session management, user data, application entities, document uploads, person records, and address records.
 
-## Current Frontend Boundaries
+## Frontend Boundaries
 
 - Business rules, ownership checks, and final validation remain backend-driven through Drupal.
 - Frontend provides a user-friendly reuse workflow for `Person` and `Address` records but does not become the source of truth for those records.
@@ -493,7 +495,7 @@
 
 - Application configuration uses environment variables for all environment-specific values.
 - **BACKEND_URL** – Canonical backend URL at the Compose or deployment layer. Frontend-facing Vite env values are derived from this URL rather than maintained separately.
-- **VITE_BACKEND_URL** / **VITE_DRUPAL_BASE_URL** – Frontend-exposed backend base URL values derived from `BACKEND_URL` for browser code. Vite only exposes variables with a `VITE_` prefix to `import.meta.env`, so browser code cannot read root-level `BACKEND_URL` directly.
+- **VITE_BACKEND_BASE_URL** – Frontend-exposed backend base URL derived from `BACKEND_URL` for browser code.
 - Session management relies entirely on HttpOnly cookies set by Drupal (not accessible from JavaScript).
 - CSRF tokens are fetched fresh from the backend before each state-changing request.
 - File upload validation:

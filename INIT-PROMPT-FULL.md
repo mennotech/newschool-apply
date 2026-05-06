@@ -2,6 +2,8 @@
 
 ## Overview
 
+This document describes the target system to build. Treat it as a target-state implementation brief, not as a claim that every described file or feature already exists in the current checkout.
+
 You are rebuilding **NewSchool Apply**, a web application for prospective students and families to apply to a school. The repository is a monorepo with two directories:
 
 - `/frontend/` — Plain JavaScript application (Vite, npm) — runs in Docker for both dev and production
@@ -110,7 +112,7 @@ INIT-PROMPT-FULL.md             — This file
 - Frontend service:
   - Builds from `./frontend/Dockerfile.dev` (for development) or `./frontend/Dockerfile` (for production)
   - Ports: `3000:3000`
-  - Environment: `DRUPAL_BASE_URL=http://localhost:8080`
+  - Environment: `VITE_BACKEND_BASE_URL=http://localhost:8080`
   - Volume mount: `./frontend/src:/app/src` (for hot-reload in dev)
 - Named volume: `backend_drupal_files` for persistent Drupal uploaded files
 - Named volume: `backend_drupal_db` for the SQLite database stored at `/var/drupal-db/db.sqlite` (outside the webroot)
@@ -127,7 +129,7 @@ INIT-PROMPT-FULL.md             — This file
 - `DRUPAL_SITE_NAME` — Optional; defaults to "NewSchool Apply"
 
 **Frontend:**
-- `DRUPAL_BASE_URL` — Base URL for Drupal API (e.g., `http://localhost:8080`)
+- `VITE_BACKEND_BASE_URL` — Base URL for Drupal API in browser code (e.g., `http://localhost:8080`)
   - Read from `.env` locally; injected via `docker-compose.yml` in containers
   - Create `.env.example` with placeholder value; `.env` is gitignored
 
@@ -233,13 +235,13 @@ export function setBaseUrl(url)                  // Configure base URL
 ```
 
 **Key behaviors:**
-- All requests read `DRUPAL_BASE_URL` from `import.meta.env`
+- All requests read `VITE_BACKEND_BASE_URL` from `import.meta.env`
 - All requests include `credentials: 'include'` to send session cookies
 - `post`, `patch`, `delete_` automatically fetch and attach CSRF token as `X-CSRF-Token` header
 - Logout uses the `logoutToken` returned by login response (not CSRF token)
 - `getLogoutToken()` is used only for bootstrapped sessions (where no login response was received); it must call a backend endpoint that returns the logout token for the current Drupal session
 - Throw structured errors parsed from Drupal's JSON:API error format
-- Never store sensitive tokens long-term; fetch CSRF fresh before each mutation
+- Never store sensitive tokens or session-derived user identity in browser storage; fetch CSRF fresh before each mutation and reconstruct lightweight user state from the backend session when needed
 
 ---
 
@@ -272,8 +274,8 @@ Frontend routing uses the History API (no external router library). Key routes:
 1. User navigates to `/login`
 2. `LoginPage` renders:
    - Email + Password form
-   - "Login with Google" link → redirect to `{DRUPAL_BASE_URL}/oauth/authorize/google`
-   - "Login with Microsoft" link → redirect to `{DRUPAL_BASE_URL}/oauth/authorize/microsoft`
+  - "Login with Google" link → redirect to `{VITE_BACKEND_BASE_URL}/oauth/authorize/google`
+  - "Login with Microsoft" link → redirect to `{VITE_BACKEND_BASE_URL}/oauth/authorize/microsoft`
 3. Email/password submission:
    - POST `/user/login?_format=json` with `{ name, pass }`
    - Drupal returns: `{ current_user: { uid, name, email, roles }, logout_token, csrf_token }`
@@ -420,7 +422,7 @@ Keep the E2E suite small and focused — cover critical paths only.
 - All interactive elements are keyboard-navigable (Tab/Shift+Tab)
 - Focus is always visible (do not remove outline without replacement)
 - Use semantic HTML (`<button>`, `<form>`, `<input>`, `<h1>...<h6>`, etc.)
-- No `dangerouslySetInnerHTML` except for controlled, server-sanitized content
+- Do not render unsanitized HTML into the DOM; only render server-sanitized HTML when explicitly required
 - Meet WCAG 2.1 AA standards as a minimum
 
 ---
@@ -446,7 +448,7 @@ Before considering the app complete, verify:
 - [ ] All Vitest and Playwright tests pass
 - [ ] Code follows accessibility guidelines (keyboard nav, labels, ARIA, etc.)
 - [ ] No console errors or warnings in production build
-- [ ] `DRUPAL_BASE_URL` is injected via environment (not hardcoded)
+- [ ] `VITE_BACKEND_BASE_URL` is injected via environment (not hardcoded)
 - [ ] Stripe payment flow works (if payment module enabled)
 
 ---
@@ -468,8 +470,8 @@ docker-compose -f docker-compose.yml up
 **Environment for production:**
 - Set real Drupal admin credentials
 - Set real Stripe keys
-- Set `DRUPAL_BASE_URL` to production domain (e.g., `https://apply.school.edu`)
-- Use a real database (not SQLite) if scaling beyond local testing
+- Set `VITE_BACKEND_BASE_URL` to the production backend domain (e.g., `https://apply.school.edu`)
+- Keep SQLite as the database for this project and continue to run it on persistent storage outside the webroot
 - Configure CORS origins for production domain in Drupal's `services.yml`
 
 ---

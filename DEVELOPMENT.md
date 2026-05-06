@@ -42,8 +42,7 @@ services:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     environment:
-      - VITE_BACKEND_URL=${BACKEND_URL:-http://localhost:8080}
-      - VITE_DRUPAL_BASE_URL=${BACKEND_URL:-http://localhost:8080}
+      - VITE_BACKEND_BASE_URL=${BACKEND_URL:-http://localhost:8080}
     depends_on:
       - backend
 
@@ -117,7 +116,7 @@ Best practices:
 
 - Keep Drupal config authoritative.
 - Prefer reproducible container behavior over machine-specific shortcuts.
-- Use SQLite locally unless maintainers explicitly direct otherwise.
+- Use SQLite for this project unless maintainers explicitly direct otherwise.
 
 ## 6. When do I use local npm versus Docker?
 

@@ -1,8 +1,10 @@
 # Backend Features
 
+This document describes the target backend behavior to implement during the build phases.
+
 ## Overview
 
-- Backend is a Drupal 10 application running in Docker with Apache and PHP 8.3.
+- The target backend is a Drupal 10 application running in Docker with Apache and PHP 8.3.
 - Drupal is the system of record for authentication, authorization, workflow state, validation, and business rules.
 - Backend exposes JSON:API resources and custom endpoints consumed by the JS frontend.
 - Local development defaults to SQLite for lightweight startup and testing.
@@ -14,7 +16,6 @@
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Apache strips `WWW-Authenticate` response headers so browser-native 401 auth prompts are suppressed and the JS frontend handles unauthorized UX.
 - Drush is installed and used for install-time/bootstrap operations.
-- Drush should be added to the docker image path for easy testing
 - Stripe CLI is installed in the backend image for local webhook testing.
 - Required PHP extensions for Drupal and media handling are installed, including:
   - `pdo_sqlite`
