@@ -1,0 +1,47 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_health_information
+      label: Page - Health Information
+      description: Reusable page definition for health card and medical details.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: health_information
+          title: Health Information
+          description: Student health card and medical details.
+          fields:
+            - key: mb_health_number_9_digit
+              label: 'MB Health # - 9 Digit'
+              type: text
+              required: true
+            - key: mb_health_number_6_digit
+              label: 'MB Health # - 6 Digit'
+              type: text
+              required: true
+            - key: emergency_contact_person
+              label: Emergency Contact (other than primary or secondary guardian)
+              type: person_reference
+              required: true
+            - key: emergency_contact_relationship_to_student
+              label: Emergency Contact's Relationship To Student
+              type: select
+              required: true
+              options: [mother, father, guardian, grandparent, emergency_contact, other]
+            - key: allergies
+              label: Allergies
+              type: textarea
+              required: false
+            - key: medications_used_frequently
+              label: Medications Used Frequently
+              type: textarea
+              required: false
+            - key: medical_restrictions
+              label: Medical Restrictions
+              type: textarea
+              required: false

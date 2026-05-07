@@ -1,0 +1,55 @@
+# Reference deployment for newschool-apply.
+#
+# Backend: pulls the published drx-drupal-base image and consumes Drupal
+# config-sync YAML generated from schema/v2 by the drx-schema PowerShell
+# module (see README.md). The base image runs hash-gated config:import on
+# every boot, so re-running the scaffold step + restarting the backend
+# container re-applies schema changes at runtime.
+#
+# Frontend: Vite-based plain JS SPA built locally from ./frontend.
+
+services:
+  backend:
+    image: ghcr.io/mennotech/drx-drupal-base:0.0.1-rc1
+    ports:
+      - "8080:80"
+    environment:
+      # Site identity
+      DRUPAL_ADMIN_USER: ${DRUPAL_ADMIN_USER:-admin}
+      DRUPAL_ADMIN_PASS: ${DRUPAL_ADMIN_PASS:?Set DRUPAL_ADMIN_PASS in .env before starting the backend}
+      DRUPAL_SITE_NAME: ${DRUPAL_SITE_NAME:-NewSchool Apply}
+      # Storage (SQLite default)
+      DRUPAL_DB_DRIVER: sqlite
+      DRUPAL_SQLITE_PATH: /var/drupal-db/db.sqlite
+      # Public URLs / CORS
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      # Enable JSON:API write mode for the decoupled frontend
+      DRUPAL_JSONAPI_READ_ONLY: "0"
+    volumes:
+      - backend_drupal_files:/var/www/html/web/sites/default/files
+      - backend_drupal_db:/var/drupal-db
+      # Generated Drupal config-sync payload (output of Export-DrXDrupalScaffoldConfig
+      # against schema/v2). Re-run the scaffold step and restart this service to
+      # re-apply schema changes.
+      - ./schema/sync:/var/www/html/config/sync:ro
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-http://localhost:8080}
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+
+volumes:
+  backend_drupal_files:
+  backend_drupal_db:

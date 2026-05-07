@@ -1,0 +1,36 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: application
+      label: Application
+      description: Per-submission application record created when a user starts a form.
+      kind: reusable_application
+      sections:
+        - id: application_identity
+          title: Application Identity
+          description: Core state tracked on each application instance.
+          fields:
+            - key: application_form
+              label: Application Form
+              type: node_reference
+              required: true
+              target_bundles: [application_form]
+            - key: started_at
+              label: Date Started
+              type: date
+              required: true
+            - key: application_status
+              label: Application Process State
+              type: select
+              required: true
+              options: [draft, submitted]
+            - key: application_result
+              label: Application Result
+              type: select
+              required: false
+              options: [approved, denied]
+            - key: payment_state
+              label: Payment State
+              type: select
+              required: true
+              options: [paid, unpaid]

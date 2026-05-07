@@ -1,0 +1,35 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_additional_support
+      label: Page - Additional Support Declaration
+      description: Reusable page definition for educational and psychological support background.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: additional_support_declaration
+          title: Additional Support Declaration
+          description: Educational and psychological support background.
+          fields:
+            - key: academic_support_details
+              label: Academic Support
+              type: textarea
+              required: false
+            - key: diagnosis_assessments_details
+              label: Diagnosis / Assessments
+              type: textarea
+              required: false
+            - key: psychological_support_details
+              label: Psychological Support
+              type: textarea
+              required: false
+            - key: support_declaration_reviewed
+              label: Support Declaration Reviewed
+              type: radio
+              required: false
+              options: [yes, no]

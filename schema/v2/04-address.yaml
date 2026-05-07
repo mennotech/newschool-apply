@@ -1,0 +1,39 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: address
+      label: Address
+      description: Reusable address record available for applications and people.
+      kind: supporting_record
+      sections:
+        - id: address_core
+          title: Address
+          description: Canonical reusable postal address fields.
+          fields:
+            - key: address_line_1
+              label: Address Line 1
+              type: text
+              required: true
+            - key: address_line_2
+              label: Address Line 2
+              type: text
+              required: false
+            - key: city
+              label: City
+              type: text
+              required: true
+            - key: state_province
+              label: Province / State
+              type: text
+              required: true
+            - key: postal_code
+              label: Postal / Zip Code
+              type: text
+              required: true
+              default: MB
+            - key: country
+              label: Country
+              type: text
+              required: true
+              default: Canada
+

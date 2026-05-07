@@ -1,0 +1,32 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: application_form
+      label: Application Form
+      description: Admin-configured application form template that controls which reusable pages appear and in what order.
+      kind: application_form_definition
+      sections:
+        - id: application_form_settings
+          title: Application Form Settings
+          description: Uses the Drupal node title as the form title and stores the enabled state, description, and ordered page list.
+          fields:
+            - key: enabled
+              label: Enabled
+              type: boolean
+              required: false
+            - key: description
+              label: Description
+              type: textarea
+              required: false
+            - key: pages
+              label: Pages
+              type: select
+              required: true
+              cardinality: -1
+              options:
+                - page_student_information
+                - page_health_information
+                - page_parent_guardian_info
+                - page_additional_support
+                - page_parent_questionnaire
+                - page_statement_of_commitment

@@ -1,0 +1,70 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: person
+      label: Person
+      description: Reusable PowerSchool-style person/contact record for parents, guardians, and emergency contacts.
+      kind: supporting_record
+      sections:
+        - id: person_identity
+          title: Person Identity
+          description: Canonical identity and relationship details for a contact.
+          fields:
+            - key: given_name
+              label: Given Name
+              type: text
+              required: true
+            - key: middle_name
+              label: Middle Name
+              type: text
+              required: false
+            - key: surname
+              label: Surname
+              type: text
+              required: true
+            - key: preferred_name
+              label: Preferred Name
+              type: text
+              required: false
+            - key: relationship_to_student
+              label: Relationship To Student
+              type: select
+              required: true
+              options: [mother, father, guardian, grandparent, emergency_contact, other]
+            - key: workplace
+              label: Workplace
+              type: text
+              required: false
+        - id: person_contact_methods
+          title: Contact Methods
+          description: PowerSchool-style typed contact methods stored on the reusable person record.
+          fields:
+            - key: email_addresses
+              label: Email Addresses
+              type: typed_contact_list
+              contact_kind: email
+              required: false
+              cardinality: -1
+            - key: phone_numbers
+              label: Phone Numbers
+              type: typed_contact_list
+              contact_kind: phone
+              required: false
+              cardinality: -1
+        - id: person_addresses
+          title: Address Links
+          description: Reusable address references for this person.
+          fields:
+            - key: primary_address
+              label: Primary Address
+              type: address_reference
+              required: false
+            - key: mailing_address_differs
+              label: Mailing Address Different From Primary Address
+              type: radio
+              required: false
+              options: [yes, no]
+            - key: mailing_address
+              label: Mailing Address
+              type: address_reference
+              required: false

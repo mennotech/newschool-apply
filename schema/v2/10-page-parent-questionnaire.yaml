@@ -1,0 +1,30 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_parent_questionnaire
+      label: Page - Parent Questionnaire
+      description: Reusable page definition for parent narrative responses.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: parent_questionnaire
+          title: Parent Questionnaire
+          description: Parent narrative responses.
+          fields:
+            - key: questionnaire_contact_person
+              label: Questionnaire Contact Person
+              type: person_reference
+              required: true
+            - key: christian_testimony
+              label: Christian Testimony Description
+              type: textarea
+              required: true
+            - key: school_interest_reason
+              label: Reason for Wanting Child to Attend Steinbach Christian School
+              type: textarea
+              required: true

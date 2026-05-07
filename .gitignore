@@ -4,3 +4,17 @@ build/
 .env
 .env.local
 .env.*.local
+
+# Generated Drupal config-sync (output of Export-DrXDrupalScaffoldConfig)
+schema/sync/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/

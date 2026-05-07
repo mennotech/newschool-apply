@@ -1,0 +1,22 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_statement_of_commitment
+      label: Page - Statement Of Commitment
+      description: Reusable page definition for commitment acknowledgement and signature.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: statement_of_commitment
+          title: Statement of Commitment
+          description: Consent acknowledgement and signature.
+          fields:
+            - key: parent_guardian_signature
+              label: Parent/Guardian Signature
+              type: signature
+              required: true

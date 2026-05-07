@@ -1,0 +1,87 @@
+version: 2
+catalog:
+  reusable_bundles:
+    - machine_name: page_student_information
+      label: Page - Student Information
+      description: Reusable page definition for student identity, demographics, and address details.
+      kind: application_page
+      system_fields:
+        - key: master_application
+          label: Master Application
+          type: node_reference
+          required: true
+          target_bundles: [application]
+      sections:
+        - id: student_information
+          title: Student Information
+          description: Student identity, demographics, and address details specific to this application.
+          fields:
+            - key: student_first_name
+              label: First Name
+              type: text
+              required: true
+            - key: student_middle_name
+              label: Middle Name
+              type: text
+              required: false
+            - key: student_last_name
+              label: Last Name
+              type: text
+              required: true
+            - key: student_preferred_name
+              label: Preferred Name
+              type: text
+              required: false
+            - key: student_gender
+              label: Gender
+              type: radio
+              required: true
+              options: [male, female]
+            - key: student_birth_date
+              label: Birth Date
+              type: date
+              required: true
+            - key: student_current_grade
+              label: Current Grade
+              type: select
+              required: true
+            - key: primary_home_phone
+              label: Primary / Home Phone Number
+              type: phone
+              required: true
+            - key: physical_address
+              label: Physical Address
+              type: address_reference
+              required: true
+            - key: mailing_address_differs
+              label: Is Mailing Address Different Than Physical Address?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: mailing_address
+              label: Mailing Address
+              type: address_reference
+              required: false
+            - key: citizenship_status
+              label: Citizenship Status
+              type: radio
+              required: true
+              options:
+                - canadian_citizen
+                - permanent_resident
+                - refugee_claimant
+                - study_permit
+                - other
+            - key: attended_mb_school_before
+              label: Have You Attended a Manitoba School in the Past?
+              type: radio
+              required: true
+              options: [yes, no]
+            - key: church_attending
+              label: Church Attending
+              type: text
+              required: false
+            - key: denomination
+              label: Denomination
+              type: text
+              required: false
