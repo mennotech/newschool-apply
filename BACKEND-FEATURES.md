@@ -13,10 +13,13 @@ This document describes the target backend behavior to implement during the buil
 ## Runtime And Deployment Features
 
 - Backend image is built from pinned upstream `php:8.3.30-apache-bookworm`.
+- Backend Dockerfile exposes two named build targets:
+  - `drupal-base` for the generic Drupal runtime, PHP extensions, Apache configuration, Composer-installed Drupal codebase, Drush, and SQLite runtime directory.
+  - `backend-customized` for the project-specific layer that adds config sync files, custom modules, init script, and Stripe CLI.
 - Apache is configured to serve Drupal from `/var/www/html/web`.
 - Apache strips `WWW-Authenticate` response headers so browser-native 401 auth prompts are suppressed and the JS frontend handles unauthorized UX.
 - Drush is installed and used for install-time/bootstrap operations.
-- Stripe CLI is installed in the backend image for local webhook testing.
+- Stripe CLI is installed in the `backend-customized` stage for local webhook testing.
 - Required PHP extensions for Drupal and media handling are installed, including:
   - `pdo_sqlite`
   - `gd`

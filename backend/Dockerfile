@@ -1,4 +1,4 @@
-FROM php:8.3.30-apache-bookworm@sha256:daf3cad5642798e462a029e41d6347cba7f3362f7028f8e60c3623dbadc4e590
+FROM php:8.3.30-apache-bookworm@sha256:daf3cad5642798e462a029e41d6347cba7f3362f7028f8e60c3623dbadc4e590 AS drupal-base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -62,6 +62,33 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
     echo "opcache.memory_consumption=128" >> "$PHP_INI_DIR/conf.d/docker-php-ext-opcache.ini"
 
 
+WORKDIR /var/www/html
+
+ENV COMPOSER_HOME=/tmp/composer \
+    COMPOSER_CACHE_DIR=/tmp/composer/cache
+
+RUN install -d -o www-data -g www-data -m 0770 /tmp/composer /tmp/composer/cache
+
+# Copy composer files
+COPY --chown=www-data:www-data composer.json composer.lock ./
+
+# Install Drupal and dependencies
+USER www-data
+RUN umask 0027; \
+    composer install --no-dev --optimize-autoloader --no-interaction 2>&1
+USER root
+
+# Add Drush to PATH
+RUN ln -s /var/www/html/vendor/bin/drush /usr/local/bin/drush
+
+# File ownership is assigned during COPY and Composer runs as www-data with umask 0027.
+
+# Create database directory for SQLite (outside webroot)
+RUN install -d -o www-data -g www-data -m 0770 /var/drupal-db
+
+
+FROM drupal-base AS backend-customized
+
 # local-dev helper: Stripe CLI for webhook testing.
 # Set STRIPE_CLI_VERSION at build time if needed.
 ARG STRIPE_CLI_VERSION=1.40.8
@@ -81,35 +108,11 @@ RUN set -eux; \
     rm -f /tmp/stripe.tar.gz; \
     stripe --version
 
-WORKDIR /var/www/html
-
-ENV COMPOSER_HOME=/tmp/composer \
-    COMPOSER_CACHE_DIR=/tmp/composer/cache
-
-RUN install -d -o www-data -g www-data -m 0770 /tmp/composer /tmp/composer/cache
-
-# Copy composer files
-COPY --chown=www-data:www-data composer.json composer.lock ./
-
-# Install Drupal and dependencies
-USER www-data
-RUN umask 0027; \
-    composer install --no-dev --optimize-autoloader --no-interaction 2>&1
-USER root
-
 # Copy custom modules
 COPY --chown=www-data:www-data modules/ web/modules/custom/
 
 # Copy configuration
 COPY --chown=www-data:www-data config/ config/
-
-# Add Drush to PATH
-RUN ln -s /var/www/html/vendor/bin/drush /usr/local/bin/drush
-
-# File ownership is assigned during COPY and Composer runs as www-data with umask 0027.
-
-# Create database directory for SQLite (outside webroot)
-RUN install -d -o www-data -g www-data -m 0770 /var/drupal-db
 
 # Copy init script
 COPY init.sh /init.sh
