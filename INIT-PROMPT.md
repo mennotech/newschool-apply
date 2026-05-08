@@ -8,7 +8,7 @@
 
 Build a **Vite + plain JavaScript** single-page application in `/frontend/` that lets prospective students and families:
 
-- Sign in (Google OAuth, Microsoft OAuth, or email + password — all via Drupal).
+- Sign in via Drupal email + password local auth. (Google/Microsoft OAuth is **planned, not in this initial build** — see § 7.)
 - Manage reusable `Person` and `Address` records.
 - Start, autosave, resume, and submit a multi-page school application.
 - Upload supporting documents.
@@ -65,7 +65,7 @@ If a requirement here conflicts with `AGENTS.md`, `AGENTS.md` wins.
 | Entity reads/writes | JSON:API: `/jsonapi/{entity_type}/{bundle}` etc. |
 | File upload | JSON:API file endpoint per Drupal docs (multipart/form-data). |
 
-OAuth (Google/Microsoft) is initiated by **redirecting the browser** to a Drupal-managed URL — the frontend does not implement the OAuth flow. Confirm the redirect path against the running backend; do not invent it.
+OAuth (Google/Microsoft) is **out of scope for this build** (see § 7). When it is added later, it will be initiated by redirecting the browser to a Drupal-managed URL — the frontend will never implement the OAuth flow itself.
 
 ---
 
@@ -96,7 +96,7 @@ Plus a thin auth module (`frontend/src/auth/session.js`) exposing: `login(email,
 - Lightweight client-side router (custom hash-less History API based, or a tiny ~20-line own implementation). Define routes per `FRONTEND-FEATURES.md` (Routing And Access Control).
 - Protected-route wrapper: checks session via `checkSession()` (and `bootstrapSession()` if no local user), redirects to `/login` otherwise.
 - Top-level header/footer per spec; mobile hamburger; active-route highlighting.
-- Login page (email/password form + Google/Microsoft buttons that redirect to backend OAuth).
+- Login page with the email/password form only. Do **not** add Google or Microsoft sign-in buttons — that's a planned future feature.
 - Registration page per spec.
 - Re-validate session on `visibilitychange` when tab becomes visible.
 
@@ -183,8 +183,9 @@ All tests must pass (`npx vitest run` and `npx playwright test`) before declarin
 
 ---
 
-## 7. Out of scope
+## 7. Out of scope (planned for later)
 
+- **Social login (Google / Microsoft OAuth).** Email/password local auth only in this build. The login page should not include OAuth buttons. Keep the auth and session modules structured so a future redirect-to-Drupal OAuth flow can be added without rewrites.
 - Payments / Stripe integration (`/payment-success` page + checkout polling). Skip this phase entirely; mention it as deferred in `FRONTEND-FEATURES.md` if any related code is removed.
 - Backend changes — `schema/v2/`, the drx-schema submodule, and the drx-apiserver image are off-limits.
 - Deployment configuration (Fly.io, etc.).

@@ -52,7 +52,7 @@ Drupal is the authoritative source for: authentication & identity, authorization
 ## 3. Authentication and identity (CRITICAL)
 
 - **Drupal is the only auth authority.** The frontend never authenticates a user with an external provider directly or issues its own tokens.
-- **Supported login methods** (via Drupal): Google OAuth, Microsoft OAuth, email + password local auth.
+- **Supported login methods** (via Drupal): email + password local auth. Google and Microsoft OAuth are **planned future features** (not in the initial build); when added, they will be Drupal-managed redirects, not in-JS OAuth flows.
 - **Frontend may** initiate login by redirecting to a Drupal-managed OAuth URL or POSTing email/password to Drupal's login endpoint. Drupal then maintains the session via cookie.
 - **For state-changing requests** (POST/PATCH/DELETE), fetch a fresh CSRF token from `GET /session/token` and send it as `X-CSRF-Token`. Do not store it long-term.
 - **Session check:** call `GET /user/login_status?_format=json` (returns `1` or `0`). Do not use `/jsonapi/user/user/{id}` for session checks — it's permission-sensitive and may return 403 for valid sessions.

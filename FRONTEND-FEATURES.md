@@ -67,9 +67,7 @@ This document describes the target frontend behavior to implement during the bui
 - Client-side validation for required login fields.
 - Error display for login failures.
 - Redirects authenticated users away from the login page to the dashboard.
-- Supports Drupal-managed social login entry points:
-  - Google
-  - Microsoft
+- **Planned (not in initial build):** Drupal-managed social login entry points (Google, Microsoft). Initial release ships email/password local auth only.
 - Uses Drupal session cookies instead of frontend token management.
 - Does not store auth state, identity data, or session-derived user data in `localStorage`, `sessionStorage`, or other browser storage.
 - On app load, revalidates the active Drupal session against `/user/login_status` before trusting any local in-memory auth state.
